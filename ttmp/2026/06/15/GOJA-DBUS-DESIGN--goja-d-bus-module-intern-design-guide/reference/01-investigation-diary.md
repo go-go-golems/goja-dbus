@@ -639,3 +639,96 @@ docmgr doc add --ticket GOJA-DBUS-DESIGN --doc-type design-doc --title "Service 
 docmgr doctor --ticket GOJA-DBUS-DESIGN --stale-after 30
 git commit -m "Docs: add service export checkpoint"
 ```
+
+## Step 7: Phase 6 Current API Documentation and Error Hardening
+
+I finished the current implementation pass by documenting the API that actually exists now and adding a small JavaScript error-code mapping. The README now includes usage examples for GetId, typed helpers, signal subscriptions, embedding, test commands, and the current deferred status of service export.
+
+This phase did not pretend that all originally imagined APIs are complete. Notification/properties examples and service export remain deferred because compound D-Bus codecs and runtime-owned cleanup still need more work.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Finish the current phase sequence with documentation, validation, and hardening appropriate to the implemented API surface.
+
+**Inferred user intent:** Leave the repo in a coherent, tested, and reviewable state after several implementation commits.
+
+**Commit (code/docs):** `de506ab6490a16231cc19ac7e529708b1481f6df` — "Document current dbus module API"
+
+### What I did
+
+- Expanded `README.md` with:
+  - current status;
+  - GetId example;
+  - typed helper example;
+  - EventEmitter signal example;
+  - Go embedding sketch;
+  - development and integration test commands.
+- Added `pkg/dbusgoja/errors.go` with `dbusError`, which sets JavaScript error `name` to `DBusError` and `code` to `ERR_DBUS`.
+- Updated Promise rejection in `pkg/dbusgoja/promise.go` to reject with `dbusError`.
+- Updated the system-bus policy denial test to assert `err.code === "ERR_DBUS"`.
+- Ran:
+  - `GOWORK=off go test ./... -count=1`
+  - `GOWORK=off go test -race ./pkg/modules/dbus -run TestDBusSystemConnectDeniedByDefault -count=1`
+- Committed the changes.
+
+### Why
+
+- The README should match the current module, not the future design doc.
+- JavaScript callers need a stable error code for policy denials and future D-Bus failures.
+- A targeted race test gives some confidence that the Promise rejection path schedules correctly through the runtime owner.
+
+### What worked
+
+- Full always-on tests passed.
+- Targeted race test passed:
+  - `ok github.com/go-go-golems/goja-dbus/pkg/modules/dbus 1.028s`
+- The current README now clearly marks service export and compound signatures as deferred.
+
+### What didn't work
+
+- N/A for this phase. The hardening and documentation changes passed on the first validation run.
+
+### What I learned
+
+- The implemented API is now coherent enough to document as a useful current subset: typed helpers, client calls, policy-denied system bus, and signal subscriptions.
+- Keeping future examples out of the README avoids creating false expectations before compound codecs and service export exist.
+
+### What was tricky to build
+
+- Error mapping should not obscure the original Go error message. The current implementation wraps the Go error in `vm.NewGoError(err)` and then adds stable JavaScript fields.
+- The README has to show `events` in the embedding middleware because signal examples need both `dbus` and `events` modules.
+
+### What warrants a second pair of eyes
+
+- The error taxonomy is intentionally minimal: all current adapter Promise rejections use `ERR_DBUS`. Future work may need subcodes such as `ERR_DBUS_POLICY`, `ERR_DBUS_TIMEOUT`, and `ERR_DBUS_MARSHAL`.
+- README examples that use top-level `await` assume an evaluator or host that supports wrapping/awaiting scripts; embedding examples may need host-specific execution details.
+
+### What should be done in the future
+
+- Add compound codecs and properties support.
+- Add runtime-owned cleanup.
+- Reopen service export after the checkpoint prerequisites are done.
+- Optionally run the real D-Bus integration test on a desktop/session-bus machine.
+
+### Code review instructions
+
+- Review `README.md` for accuracy against implemented APIs.
+- Review `pkg/dbusgoja/errors.go` and `pkg/dbusgoja/promise.go` for error object behavior.
+- Review `pkg/modules/dbus/module_test.go` for the policy-denial error-code assertion.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+  - `GOWORK=off go test -race ./pkg/modules/dbus -run TestDBusSystemConnectDeniedByDefault -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbusgoja/errors.go pkg/dbusgoja/promise.go pkg/modules/dbus/module_test.go
+GOWORK=off go test ./... -count=1
+GOWORK=off go test -race ./pkg/modules/dbus -run TestDBusSystemConnectDeniedByDefault -count=1
+git commit -m "Document current dbus module API"
+```

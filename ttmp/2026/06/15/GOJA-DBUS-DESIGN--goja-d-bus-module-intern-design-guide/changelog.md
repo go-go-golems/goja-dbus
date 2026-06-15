@@ -81,3 +81,14 @@ Phase 5: added service export checkpoint and deferred echo-service implementatio
 
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/design-doc/02-service-export-checkpoint.md — Checkpoint decision and future pseudocode
 
+
+## 2026-06-15
+
+Phase 6: documented current API, added DBusError/ERR_DBUS mapping, and ran full plus targeted race tests (commit de506ab6490a16231cc19ac7e529708b1481f6df).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — Current API examples and status
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/errors.go — JavaScript DBusError mapping
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module_test.go — Policy denial error-code assertion
+

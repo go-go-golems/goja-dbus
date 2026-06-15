@@ -59,9 +59,9 @@
 
 ## Phase 6 — Documentation, declarations, and hardening
 
-- [ ] Expand README examples for GetId, notification, properties, signals, and service export status.
-- [ ] Complete TypeScript declarations for public APIs.
-- [ ] Add error-code mapping and policy denial tests.
-- [ ] Run `GOWORK=off go test ./... -count=1` and targeted race tests for signal/service code.
-- [ ] Update the diary, changelog, and final handoff notes.
-- [ ] Commit final docs and hardening changes.
+- [x] Expand README examples for GetId, typed helpers, signals, embedding, and service export status. Notification/properties examples remain deferred with compound codecs.
+- [x] Complete TypeScript declarations for current public APIs.
+- [x] Add error-code mapping and policy denial tests.
+- [x] Run `GOWORK=off go test ./... -count=1` and targeted race test for policy-denied Promise path.
+- [x] Update the diary, changelog, and final handoff notes.
+- [x] Commit current docs and hardening changes (`de506ab`).
