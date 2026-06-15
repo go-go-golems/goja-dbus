@@ -106,9 +106,9 @@ The payload has `sender`, `path`, `name`, and `body` fields. Body values are nor
 The generated binary includes jsverbs that demonstrate safe behavior:
 
 ```bash
-./dist/goja-dbus-xgoja verbs examples typed-values
-./dist/goja-dbus-xgoja verbs examples denied-system-bus
-./dist/goja-dbus-xgoja verbs examples get-id-script
+./dist/goja-dbus verbs examples typed-values
+./dist/goja-dbus verbs examples denied-system-bus
+./dist/goja-dbus verbs examples get-id-script
 ```
 
 Use these examples to verify that the binary contains the module and docs before trying host-specific D-Bus calls.
