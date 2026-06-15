@@ -135,3 +135,14 @@ Moved the goja-dbus xgoja binary spec to cmd/goja-dbus/xgoja.yaml and updated Ma
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — updated xgoja doctor/build targets
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus/xgoja.yaml — new xgoja spec location
 
+
+## 2026-06-15
+
+Renamed the generated xgoja artifact from goja-dbus-xgoja to goja-dbus and updated docs/build targets (commit e9f9136).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — updated output path
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — updated generated binary commands
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus/xgoja.yaml — renamed generated app and artifact
+

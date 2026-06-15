@@ -1159,3 +1159,95 @@ make xgoja-build
 GOWORK=off go test ./... -count=1
 git commit -m "Move xgoja spec under cmd/goja-dbus"
 ```
+
+## Step 12: Rename Generated xgoja Artifact to `goja-dbus`
+
+I renamed the generated xgoja host from `goja-dbus-xgoja` to `goja-dbus`. The xgoja spec now describes the command name, generated module, binary artifact, and TypeScript declaration artifact with the shorter project command name.
+
+This follows the previous relocation of the spec into `cmd/goja-dbus/`: the command directory and generated binary now use the same name.
+
+### Prompt Context
+
+**User prompt (verbatim):** "goja-debus"
+
+**Assistant interpretation:** The user started to specify the desired binary/name but corrected it in the next prompt.
+
+**Inferred user intent:** Rename the generated xgoja artifact to the canonical project command name.
+
+**User prompt (verbatim):** "goja-dbus"
+
+**Assistant interpretation:** Use `goja-dbus` as the generated binary/artifact name instead of `goja-dbus-xgoja`.
+
+**Inferred user intent:** Align the generated command name with the repository/module name.
+
+**Commit (code/docs):** `e9f91364bcf219111cd9330e4acf4d68e118e961` — "Rename xgoja artifact to goja-dbus"
+
+### What I did
+
+- Updated `cmd/goja-dbus/xgoja.yaml`:
+  - `name: goja-dbus`;
+  - `app.name: goja-dbus`;
+  - generated module `xgoja.generated/goja-dbus`;
+  - binary output `dist/goja-dbus`;
+  - DTS output `dist/goja-dbus.d.ts`.
+- Updated `make xgoja-build` to write `dist/goja-dbus`.
+- Updated README and bundled getting-started help commands from `./dist/goja-dbus-xgoja` to `./dist/goja-dbus`.
+- Rebuilt and smoke-tested the renamed binary.
+
+### Why
+
+- The generated host now lives under `cmd/goja-dbus`, so the shorter artifact name is clearer and better matches normal CLI naming.
+- Keeping `xgoja` out of the user-facing binary name makes the tool feel like the goja-dbus CLI rather than an implementation detail.
+
+### What worked
+
+- `make xgoja-doctor` passed.
+- `make xgoja-build` produced `dist/goja-dbus`.
+- `./dist/goja-dbus help getting-started` rendered successfully.
+- `./dist/goja-dbus verbs examples typed-values` ran successfully.
+- `GOWORK=off go test ./... -count=1` passed.
+
+### What didn't work
+
+- N/A. The rename was mechanical and validated cleanly.
+
+### What I learned
+
+- The xgoja artifact name is controlled in several places: top-level spec name, app name, generated Go module path, artifact output paths, Makefile overrides, and user-facing docs.
+
+### What was tricky to build
+
+- The main risk was stale command examples in bundled help/README. I used repository search for `goja-dbus-xgoja` and validated the rendered help after replacement.
+
+### What warrants a second pair of eyes
+
+- Review whether the older placeholder `cmd/goja-dbus-demo` should stay, be removed, or be renamed now that `cmd/goja-dbus/xgoja.yaml` is the main command configuration.
+
+### What should be done in the future
+
+- Decide how release packaging should handle both the generated xgoja binary and the existing demo command.
+
+### Code review instructions
+
+- Review `cmd/goja-dbus/xgoja.yaml` for name/module/output changes.
+- Review README and bundled getting-started help for updated commands.
+- Validate with:
+  - `make xgoja-doctor`
+  - `make xgoja-build`
+  - `./dist/goja-dbus help getting-started`
+  - `./dist/goja-dbus verbs examples typed-values`
+  - `GOWORK=off go test ./... -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+make xgoja-doctor
+make xgoja-build
+./dist/goja-dbus help getting-started
+./dist/goja-dbus verbs examples typed-values
+GOWORK=off go test ./... -count=1
+git commit -m "Rename xgoja artifact to goja-dbus"
+```
