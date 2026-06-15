@@ -10,8 +10,14 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: Makefile
+      Note: updated xgoja target paths for commit ea0a7a5
+    - Path: cmd/goja-dbus/xgoja.yaml
+      Note: moved xgoja binary spec for commit ea0a7a5
     - Path: pkg/xgoja/provider/docs/help/01-getting-started.md
-      Note: bundled Glazed help docs for commit 50ad0ab
+      Note: |-
+        bundled Glazed help docs for commit 50ad0ab
+        updated bundled build instructions for commit ea0a7a5
     - Path: pkg/xgoja/provider/provider.go
       Note: xgoja provider registration for commit 50ad0ab
     - Path: pkg/xgoja/provider/verbs/examples.js
@@ -29,6 +35,7 @@ LastUpdated: 2026-06-15T17:45:00-04:00
 WhatFor: Resume or review the investigation behind the Goja D-Bus module design guide.
 WhenToUse: When continuing implementation, reviewing evidence, or checking what commands and failures occurred during ticket creation.
 ---
+
 
 
 
@@ -1063,4 +1070,92 @@ make xgoja-build
 ./dist/goja-dbus-xgoja verbs examples denied-system-bus
 ./dist/goja-dbus-xgoja verbs examples get-id-script
 git commit -m "Add xgoja provider with bundled DBus docs"
+```
+
+## Step 11: Move xgoja Build Spec Under `cmd/goja-dbus`
+
+I moved the generated binary's xgoja spec from the repository root into `cmd/goja-dbus/xgoja.yaml`. This puts the binary configuration next to the command namespace that owns it while keeping the generated executable output in `dist/goja-dbus-xgoja`.
+
+The move required adjusting relative provider replacement paths and Makefile targets so the sibling-checkout build flow still works from the repository root.
+
+### Prompt Context
+
+**User prompt (verbatim):** "mv the xgoja.yaml binary to be in ./goja-dbus/cmd/goja-dbus/"
+
+**Assistant interpretation:** Move the xgoja build specification for the goja-dbus binary under `cmd/goja-dbus/` and update all references/validation commands accordingly.
+
+**Inferred user intent:** Keep binary-specific xgoja configuration under the command directory rather than at repository root.
+
+**Commit (code/docs):** `ea0a7a5fa3df0040a03929670b6c9c1a612af491` — "Move xgoja spec under cmd/goja-dbus"
+
+### What I did
+
+- Moved `xgoja.yaml` to `cmd/goja-dbus/xgoja.yaml`.
+- Updated the spec's relative local replacements:
+  - `github.com/go-go-golems/go-go-goja` now resolves through `../../../go-go-goja`;
+  - `github.com/go-go-golems/goja-dbus` now resolves through `../..`.
+- Updated Makefile targets to use `../goja-dbus/cmd/goja-dbus/xgoja.yaml`.
+- Updated README and bundled getting-started help text to reference `cmd/goja-dbus/xgoja.yaml`.
+- Revalidated the xgoja doctor/build flow and smoke-tested generated help plus a bundled verb.
+
+### Why
+
+- The xgoja spec describes a generated binary, so placing it under `cmd/goja-dbus/` better matches normal Go project layout.
+- Keeping the Makefile targets stable preserves the existing root-level developer workflow.
+
+### What worked
+
+- `make xgoja-doctor` passed with the moved spec.
+- `make xgoja-build` produced `dist/goja-dbus-xgoja`.
+- `./dist/goja-dbus-xgoja help getting-started` rendered successfully.
+- `./dist/goja-dbus-xgoja verbs examples denied-system-bus` ran successfully.
+- `GOWORK=off go test ./... -count=1` passed.
+
+### What didn't work
+
+- My first automated replacement accidentally rewrote the core provider replacement path as `../.../../../go-go-goja`.
+- Fix: corrected it to `../../../go-go-goja`, which `xgoja doctor` then resolved to the sibling go-go-goja checkout.
+
+### What I learned
+
+- The xgoja spec's `module.replace` paths are resolved relative to the spec file path, so moving the spec requires recalculating local replacements.
+- The root Makefile can hide that relocation from day-to-day users by passing the new `-f cmd/goja-dbus/xgoja.yaml` path.
+
+### What was tricky to build
+
+- The path relocation is small but easy to get wrong because the command invoking xgoja runs from the sibling `go-go-goja` module while the spec file lives inside `goja-dbus/cmd/goja-dbus`. The validation step was necessary to prove both local replacements still resolve correctly.
+
+### What warrants a second pair of eyes
+
+- Review whether the generated binary name should eventually be shortened from `goja-dbus-xgoja` to `goja-dbus` now that the spec lives under `cmd/goja-dbus`.
+- Review whether a future checked-in generated host should live in this command directory or whether xgoja generation should remain purely build-time.
+
+### What should be done in the future
+
+- If the command becomes the primary CLI, consider renaming the artifact from `dist/goja-dbus-xgoja` to `dist/goja-dbus` and updating release packaging.
+
+### Code review instructions
+
+- Review `cmd/goja-dbus/xgoja.yaml` for relative `module.replace` paths.
+- Review `Makefile` for root-level `xgoja-doctor` and `xgoja-build` target paths.
+- Review README and `pkg/xgoja/provider/docs/help/01-getting-started.md` for stale root `xgoja.yaml` references.
+- Validate with:
+  - `make xgoja-doctor`
+  - `make xgoja-build`
+  - `GOWORK=off go test ./... -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+mkdir -p cmd/goja-dbus
+mv xgoja.yaml cmd/goja-dbus/xgoja.yaml
+make xgoja-doctor
+make xgoja-build
+./dist/goja-dbus-xgoja help getting-started
+./dist/goja-dbus-xgoja verbs examples denied-system-bus
+GOWORK=off go test ./... -count=1
+git commit -m "Move xgoja spec under cmd/goja-dbus"
 ```

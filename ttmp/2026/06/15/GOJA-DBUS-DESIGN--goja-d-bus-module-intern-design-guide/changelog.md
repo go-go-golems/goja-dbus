@@ -125,3 +125,13 @@ Phase 8: added xgoja provider, bundled Glazed help docs, bundled jsverb examples
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/xgoja/provider/provider.go — provider registration
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/xgoja.yaml — xgoja build spec
 
+
+## 2026-06-15
+
+Moved the goja-dbus xgoja binary spec to cmd/goja-dbus/xgoja.yaml and updated Makefile/docs references (commit ea0a7a5).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — updated xgoja doctor/build targets
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus/xgoja.yaml — new xgoja spec location
+
