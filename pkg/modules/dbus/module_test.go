@@ -35,6 +35,12 @@ const s = dbus.signature("a{sv}");
 if (s.signature !== "g" || s.value !== "a{sv}") throw new Error("bad signature");
 const v = dbus.variant("s", "hello");
 if (v.signature !== "v" || v.value.signature !== "s" || v.value.value !== "hello") throw new Error("bad variant");
+const arr = dbus.array("as", ["one", "two"]);
+if (arr.signature !== "as" || arr.value[1] !== "two") throw new Error("bad array");
+const dict = dbus.dict("a{sv}", { name: dbus.variant("s", "demo") });
+if (dict.signature !== "a{sv}" || dict.value.name.signature !== "v") throw new Error("bad dict");
+const st = dbus.struct("(su)", ["count", dbus.u32(7)]);
+if (st.signature !== "(su)" || st.value[1].signature !== "u") throw new Error("bad struct");
 `)
 	if err != nil {
 		t.Fatalf("run script: %v", err)

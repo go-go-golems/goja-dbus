@@ -65,3 +65,13 @@
 - [x] Run `GOWORK=off go test ./... -count=1` and targeted race test for policy-denied Promise path.
 - [x] Update the diary, changelog, and final handoff notes.
 - [x] Commit current docs and hardening changes (`de506ab`).
+
+## Phase 7 — Runtime cleanup and compound codec foundations
+
+- [x] Add runtime-lifetime cleanup for tracked D-Bus buses.
+- [x] Make bus close cascade to tracked signal subscriptions.
+- [x] Add tests for runtime registry cleanup and bus/subscription close cascading.
+- [x] Add typed helpers for `array`, `dict`, and `struct`.
+- [x] Add core codec support for common arrays, `a{sv}`, and flat structs.
+- [x] Update README and TypeScript declarations for compound helper subset.
+- [ ] Commit compound codec foundations.

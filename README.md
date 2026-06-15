@@ -15,7 +15,7 @@ See the docmgr ticket at `ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-in
 Implemented:
 
 - `require("dbus")` native module registration.
-- Typed helpers: `u32`, `i32`, `path`, `signature`, and `variant`.
+- Typed helpers: `u32`, `i32`, `path`, `signature`, `variant`, `array`, `dict`, and `struct`.
 - Promise-based session/system/address bus builders.
 - Default-denied system bus policy.
 - Remote method-call builders for scalar signatures.
@@ -23,7 +23,7 @@ Implemented:
 
 Deferred:
 
-- compound D-Bus signatures such as arrays, dictionaries, and structs;
+- complete D-Bus signature coverage beyond the current scalar, array, `a{sv}`, and flat-struct subset;
 - JavaScript-backed D-Bus service export.
 
 ## JavaScript examples
@@ -57,10 +57,16 @@ const dbus = require("dbus");
 const count = dbus.u32(42);
 const objectPath = dbus.path("/com/example/App1");
 const options = dbus.variant("s", "hello");
+const actions = dbus.array("as", ["default", "Open"]);
+const hints = dbus.dict("a{sv}", { urgency: dbus.variant("u", dbus.u32(1)) });
+const pair = dbus.struct("(su)", ["count", dbus.u32(7)]);
 
 console.log(count.signature, count.value);      // "u", 42
 console.log(objectPath.signature, objectPath.value);
 console.log(options.signature, options.value.signature);
+console.log(actions.signature, actions.value.length);
+console.log(hints.signature, hints.value.urgency.signature);
+console.log(pair.signature, pair.value[0]);
 ```
 
 ### Listen for signals with EventEmitter

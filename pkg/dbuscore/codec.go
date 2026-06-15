@@ -2,6 +2,7 @@ package dbuscore
 
 import (
 	"fmt"
+	"strings"
 
 	godbus "github.com/godbus/dbus/v5"
 )
@@ -31,7 +32,22 @@ func Marshal(signature string, value any) (any, error) {
 		return marshalSignature(value)
 	case "v":
 		return nil, fmt.Errorf("dbus: variant values must use dbus.variant(signature, value)")
+	case "as":
+		return marshalStringArray(value)
+	case "au":
+		return marshalUint32Array(value)
+	case "ai":
+		return marshalInt32Array(value)
+	case "ao":
+		return marshalObjectPathArray(value)
+	case "av":
+		return marshalVariantArray(value)
+	case "a{sv}":
+		return marshalStringVariantMap(value)
 	default:
+		if strings.HasPrefix(signature, "(") && strings.HasSuffix(signature, ")") {
+			return marshalStruct(signature, value)
+		}
 		return nil, fmt.Errorf("dbus: unsupported input signature %q", signature)
 	}
 }
@@ -137,6 +153,191 @@ func marshalSignature(value any) (godbus.Signature, error) {
 	}
 }
 
+func marshalStringArray(value any) ([]string, error) {
+	items, err := toAnySlice(value)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		v, ok := item.(string)
+		if !ok {
+			return nil, fmt.Errorf("dbus: expected string array item, got %T", item)
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func marshalUint32Array(value any) ([]uint32, error) {
+	items, err := toAnySlice(value)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]uint32, 0, len(items))
+	for _, item := range items {
+		v, err := marshalUint32(item)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func marshalInt32Array(value any) ([]int32, error) {
+	items, err := toAnySlice(value)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]int32, 0, len(items))
+	for _, item := range items {
+		v, err := marshalInt32(item)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func marshalObjectPathArray(value any) ([]godbus.ObjectPath, error) {
+	items, err := toAnySlice(value)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]godbus.ObjectPath, 0, len(items))
+	for _, item := range items {
+		v, err := marshalObjectPath(item)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func marshalVariantArray(value any) ([]godbus.Variant, error) {
+	items, err := toAnySlice(value)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]godbus.Variant, 0, len(items))
+	for _, item := range items {
+		typed, ok := item.(TypedValue)
+		if !ok || typed.Signature != "v" {
+			return nil, fmt.Errorf("dbus: av items must be variants")
+		}
+		v, err := typedToDBus("v", typed)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v.(godbus.Variant))
+	}
+	return out, nil
+}
+
+func marshalStringVariantMap(value any) (map[string]godbus.Variant, error) {
+	items, ok := value.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("dbus: expected object/map for a{sv}, got %T", value)
+	}
+	out := make(map[string]godbus.Variant, len(items))
+	for key, item := range items {
+		typed, ok := item.(TypedValue)
+		if !ok || typed.Signature != "v" {
+			return nil, fmt.Errorf("dbus: a{sv} value for %q must be a variant", key)
+		}
+		v, err := typedToDBus("v", typed)
+		if err != nil {
+			return nil, err
+		}
+		out[key] = v.(godbus.Variant)
+	}
+	return out, nil
+}
+
+func marshalStruct(signature string, value any) ([]any, error) {
+	items, err := toAnySlice(value)
+	if err != nil {
+		return nil, err
+	}
+	inner := strings.TrimSuffix(strings.TrimPrefix(signature, "("), ")")
+	sigs, err := splitFlatSignatures(inner)
+	if err != nil {
+		return nil, err
+	}
+	if len(sigs) != len(items) {
+		return nil, fmt.Errorf("dbus: struct %s expects %d values, got %d", signature, len(sigs), len(items))
+	}
+	out := make([]any, 0, len(items))
+	for i, sig := range sigs {
+		v, err := Marshal(sig, items[i])
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func toAnySlice(value any) ([]any, error) {
+	switch v := value.(type) {
+	case []any:
+		return v, nil
+	case []string:
+		out := make([]any, len(v))
+		for i, item := range v {
+			out[i] = item
+		}
+		return out, nil
+	case []uint32:
+		out := make([]any, len(v))
+		for i, item := range v {
+			out[i] = item
+		}
+		return out, nil
+	case []int32:
+		out := make([]any, len(v))
+		for i, item := range v {
+			out[i] = item
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("dbus: expected array, got %T", value)
+	}
+}
+
+func splitFlatSignatures(s string) ([]string, error) {
+	var out []string
+	for i := 0; i < len(s); {
+		switch s[i] {
+		case 's', 'u', 'i', 'o', 'g', 'v':
+			out = append(out, s[i:i+1])
+			i++
+		case 'a':
+			if i+1 >= len(s) {
+				return nil, fmt.Errorf("dbus: incomplete array signature")
+			}
+			if s[i+1] == '{' {
+				end := strings.IndexByte(s[i+1:], '}')
+				if end < 0 {
+					return nil, fmt.Errorf("dbus: incomplete dict signature")
+				}
+				end = i + 1 + end
+				out = append(out, s[i:end+1])
+				i = end + 1
+			} else {
+				out = append(out, s[i:i+2])
+				i += 2
+			}
+		default:
+			return nil, fmt.Errorf("dbus: unsupported flat signature token %q", s[i])
+		}
+	}
+	return out, nil
+}
+
 func normalizeDBusValue(value any) any {
 	switch v := value.(type) {
 	case godbus.ObjectPath:
@@ -145,6 +346,36 @@ func normalizeDBusValue(value any) any {
 		return v.String()
 	case godbus.Variant:
 		return normalizeDBusValue(v.Value())
+	case []any:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			out = append(out, normalizeDBusValue(item))
+		}
+		return out
+	case []string:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			out = append(out, item)
+		}
+		return out
+	case []uint32:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			out = append(out, item)
+		}
+		return out
+	case []int32:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			out = append(out, item)
+		}
+		return out
+	case map[string]godbus.Variant:
+		out := make(map[string]any, len(v))
+		for key, item := range v {
+			out[key] = normalizeDBusValue(item)
+		}
+		return out
 	default:
 		return v
 	}

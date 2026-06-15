@@ -30,6 +30,9 @@ Functions:
   path(value): Validates and wraps a D-Bus object path.
   signature(value): Validates and wraps a D-Bus signature.
   variant(signature, value): Wraps a value as a D-Bus variant.
+  array(signature, values): Wraps an explicitly typed D-Bus array.
+  dict(signature, values): Wraps an explicitly typed D-Bus dictionary.
+  struct(signature, values): Wraps an explicitly typed D-Bus struct.
 `
 }
 
@@ -86,6 +89,9 @@ func (m *module) TypeScriptModule() *spec.Module {
 			"export function path(value: string): DBusTypedValue;",
 			"export function signature(value: string): DBusTypedValue;",
 			"export function variant(signature: string, value: any): DBusTypedValue;",
+			"export function array(signature: string, values: any[]): DBusTypedValue;",
+			"export function dict(signature: string, values: Record<string, any>): DBusTypedValue;",
+			"export function struct(signature: string, values: any[]): DBusTypedValue;",
 		},
 	}
 }
