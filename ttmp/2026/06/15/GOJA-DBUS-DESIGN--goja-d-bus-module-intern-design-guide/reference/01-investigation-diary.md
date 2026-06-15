@@ -732,3 +732,187 @@ GOWORK=off go test ./... -count=1
 GOWORK=off go test -race ./pkg/modules/dbus -run TestDBusSystemConnectDeniedByDefault -count=1
 git commit -m "Document current dbus module API"
 ```
+
+## Step 8: Runtime-Owned D-Bus Resource Cleanup
+
+I closed the Phase 4 lifecycle gap by adding runtime-owned cleanup for D-Bus resources created through the JavaScript module. The Goja adapter now creates a per-module resource registry tied to the runtime lifetime context; when the runtime closes, that registry closes all tracked buses, and bus close cascades to tracked signal subscriptions.
+
+This makes explicit `bus.close()` and `subscription.close()` still useful, but no longer the only cleanup path. It also removes runtime-shutdown cleanup from the README's deferred list.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue the previously defined implementation plan from the remaining open tasks.
+
+**Inferred user intent:** Keep progressing through deferred foundational work with commits and diary updates.
+
+**Commit (code):** `3d3f7b841dede1177a477733cc8da65589fdda22` — "Close D-Bus resources on runtime shutdown"
+
+### What I did
+
+- Added `pkg/dbusgoja/resources.go` with a `resourceRegistry` tied to `RuntimeServices.Lifetime()`.
+- The registry tracks connected `*dbuscore.Bus` values and closes them when the runtime lifetime context is canceled.
+- Updated `NewModuleObject` to create the registry and pass it into bus builders.
+- Updated bus builders so successful `connect()` registers a bus, and explicit `bus.close()` unregisters it before closing.
+- Updated `dbuscore.Bus` to track subscriptions.
+- Updated `dbuscore.Bus.Close` to close tracked subscriptions before closing the underlying D-Bus connection.
+- Added `dbuscore.Bus.Closed()` for lifecycle tests.
+- Added tests for bus close cascading to subscriptions and registry close-on-lifetime-cancel behavior.
+- Removed runtime cleanup from the README deferred list.
+- Ran `GOWORK=off go test ./... -count=1`.
+
+### Why
+
+- Phase 4 left an explicit open task: signal subscription goroutines should exit on runtime shutdown even if JavaScript forgets to call close.
+- Service export remains deferred partly because long-lived resources need a safe cleanup model. This step strengthens that foundation.
+
+### What worked
+
+- `GOWORK=off go test ./... -count=1` passed.
+- The registry tests confirmed runtime lifetime cancellation closes tracked buses.
+- The bus test confirmed `Bus.Close` cancels tracked subscriptions.
+
+### What didn't work
+
+- The first idea for registry testing tried to infer closure by calling `Bus.Call` on a zero-value bus, but a zero-value bus already reports `dbus: bus is closed` because it has no connection. That could not distinguish registry cleanup from an unusable zero-value bus.
+- Fix: added a small `Bus.Closed()` method and tested the explicit closed flag instead.
+
+### What I learned
+
+- A plain `modules.NativeModule` can still perform runtime cleanup if its loader obtains `RuntimeServices.Lifetime()` and starts a non-Goja goroutine that only closes plain Go resources.
+- Tracking subscriptions inside `dbuscore.Bus` is simpler than asking the JavaScript adapter to remember every subscription independently.
+
+### What was tricky to build
+
+- `Bus.Close` needed to copy subscriptions while holding the bus mutex, release the mutex, then close subscriptions. Calling `Subscription.Close` while still holding the bus mutex would deadlock because subscription close unregisters itself from the bus.
+- Explicit `bus.close()` must unregister the bus from the registry so the later runtime cleanup goroutine does not attempt to close it again. The close methods are idempotent, but unregistering keeps the registry accurate.
+
+### What warrants a second pair of eyes
+
+- The registry goroutine starts when the module is required. This is acceptable because it only waits on runtime lifetime and closes Go resources, but reviewers should confirm there is no leak if a runtime never requires `dbus`.
+- The cleanup path uses `context.Background()` during lifetime cancellation. A future refinement might use a bounded timeout context for close operations.
+
+### What should be done in the future
+
+- Add compound signature codecs now that runtime cleanup is stronger.
+- Revisit the service export checkpoint after compound codecs and perhaps a tighter close timeout policy.
+
+### Code review instructions
+
+- Review `pkg/dbusgoja/resources.go` for runtime-lifetime cleanup behavior.
+- Review `pkg/dbuscore/bus.go` and `pkg/dbuscore/signals.go` for subscription tracking and close ordering.
+- Validate with `GOWORK=off go test ./... -count=1`.
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbuscore pkg/dbusgoja
+GOWORK=off go test ./... -count=1
+git commit -m "Close D-Bus resources on runtime shutdown"
+```
+
+## Step 9: Compound D-Bus Typed Helpers and Codec Foundations
+
+I added the first compound D-Bus typed helper and codec foundation. JavaScript now has `dbus.array(signature, values)`, `dbus.dict(signature, values)`, and `dbus.struct(signature, values)` helpers in addition to scalar helpers, and the core codec can marshal common arrays, `a{sv}` dictionaries, and flat structs.
+
+This is still a foundation, not complete D-Bus signature coverage. It supports the common subset needed for many notification/property-style calls, while keeping unsupported signatures explicit errors rather than silently guessing.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 8)
+
+**Assistant interpretation:** Continue from the remaining foundational tasks after runtime cleanup.
+
+**Inferred user intent:** Progress toward the prerequisites identified in the service export checkpoint, especially compound codec support.
+
+**Commit (code):** `833cb85e40c7def04ecba848aef87a149d5fcc7a` — "Add compound D-Bus typed helpers"
+
+### What I did
+
+- Added core marshaling support for:
+  - `as` string arrays;
+  - `au` uint32 arrays;
+  - `ai` int32 arrays;
+  - `ao` object-path arrays;
+  - `av` variant arrays;
+  - `a{sv}` string-to-variant dictionaries;
+  - flat structs such as `(su)`.
+- Added recursive JavaScript decoding for arrays, plain objects, and nested `DBusTypedValue` objects.
+- Added JavaScript helpers:
+  - `dbus.array(signature, values)`;
+  - `dbus.dict(signature, values)`;
+  - `dbus.struct(signature, values)`.
+- Updated TypeScript declarations for the new helpers.
+- Updated README examples and the current/deferred status.
+- Added core codec tests for arrays, dictionaries, and structs.
+- Extended the runtime module test to assert helper object shapes for array/dict/struct.
+- Ran `GOWORK=off go test ./... -count=1`.
+
+### Why
+
+- The service export checkpoint identified compound codecs as a prerequisite for properties, notifications, and eventually service export.
+- Common D-Bus APIs use `as` and `a{sv}` frequently; supporting them makes the client API substantially more useful.
+
+### What worked
+
+- Full tests passed after fixing the JavaScript decoder recursion issue.
+- The helper API preserves explicit signatures while giving JavaScript users ergonomic wrappers.
+- Nested typed values now survive JavaScript object/array decoding, which is required for `a{sv}` values like `{ urgency: dbus.variant("u", dbus.u32(1)) }`.
+
+### What didn't work
+
+- The first compile failed because the TypeScript declaration raw string slice missed a trailing comma after the new `struct` declaration:
+  - Error: `pkg/modules/dbus/module.go:94:79: missing ',' before newline in composite literal`
+  - Fix: added the missing comma.
+- The first decoder implementation panicked on missing object properties because `obj.Get(typedMarker)` can return nil:
+  - Symptom: `panic: runtime error: invalid memory address or nil pointer dereference`
+  - Fix: check for nil/undefined before calling `ToBoolean()`.
+- The next decoder implementation caused a stack overflow because primitive strings were converted to objects and recursively decoded through enumerable string indices:
+  - Symptom: `fatal error: stack overflow` with repeated `decodeJSValue` frames.
+  - Fix: only treat `ClassName() == "Array"` as an array and `ClassName() == "Object"` as a plain object.
+
+### What I learned
+
+- Goja `ToObject` is too broad for generic decoding because primitives also become wrapper objects. Decoder code must check object class before recursing.
+- Preserving nested typed values is necessary before dictionary helpers are useful; otherwise `dbus.variant(...)` inside a JavaScript object degrades into a plain exported map.
+- A deliberately limited signature subset is safer than pretending to support all D-Bus signatures dynamically.
+
+### What was tricky to build
+
+- D-Bus marshaling depends on Go concrete types. For arrays, returning `[]string`, `[]uint32`, `[]int32`, `[]dbus.ObjectPath`, or `[]dbus.Variant` is safer than returning `[]any` and hoping godbus infers the intended element type.
+- Flat struct support is represented as `[]any` for now. That is enough for internal codec shape tests, but it may require revisiting with real godbus integration before relying on struct inputs heavily.
+- The recursive JS decoder must handle typed helper objects, arrays, and plain objects without walking into primitive wrapper objects or function objects.
+
+### What warrants a second pair of eyes
+
+- `marshalStruct` should be reviewed before using it in real D-Bus calls; godbus may require concrete struct representations for some cases.
+- The supported signature subset should be documented clearly for users before adding notification examples that depend on `as` and `a{sv}`.
+- `splitFlatSignatures` intentionally supports only flat signatures and should not be mistaken for a full D-Bus signature parser.
+
+### What should be done in the future
+
+- Add real integration coverage for a method that accepts `as` and `a{sv}`.
+- Add properties client helpers now that `a{sv}` is available.
+- Revisit service export after properties and compound codec integration tests.
+
+### Code review instructions
+
+- Review `pkg/dbuscore/codec.go` for supported signature behavior and explicit unsupported cases.
+- Review `pkg/dbusgoja/decode.go` for recursive decoding safety.
+- Review `pkg/dbusgoja/typed_values.go` for helper export behavior.
+- Validate with `GOWORK=off go test ./... -count=1`.
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
+GOWORK=off go test ./... -count=1
+git commit -m "Add compound D-Bus typed helpers"
+```

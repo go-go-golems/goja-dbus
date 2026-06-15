@@ -74,4 +74,4 @@
 - [x] Add typed helpers for `array`, `dict`, and `struct`.
 - [x] Add core codec support for common arrays, `a{sv}`, and flat structs.
 - [x] Update README and TypeScript declarations for compound helper subset.
-- [ ] Commit compound codec foundations.
+- [x] Commit runtime cleanup (`3d3f7b8`) and compound codec foundations (`833cb85`).

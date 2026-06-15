@@ -92,3 +92,25 @@ Phase 6: documented current API, added DBusError/ERR_DBUS mapping, and ran full 
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/errors.go — JavaScript DBusError mapping
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module_test.go — Policy denial error-code assertion
 
+
+## 2026-06-15
+
+Continued Phase 4 hardening: added runtime-owned registry that closes tracked buses and subscriptions on runtime shutdown (commit 3d3f7b841dede1177a477733cc8da65589fdda22).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/bus.go — Bus close now cascades to tracked subscriptions
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/signals.go — Subscriptions unregister from their owning bus on close
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/resources.go — Runtime lifetime resource registry
+
+
+## 2026-06-15
+
+Phase 7: added compound typed helpers and codec support for common arrays, a{sv}, and flat structs (commit 833cb85e40c7def04ecba848aef87a149d5fcc7a).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/codec.go — Compound codec support
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/decode.go — Recursive JavaScript value decoding
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/typed_values.go — array/dict/struct helper exports
+
