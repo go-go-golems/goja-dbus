@@ -114,3 +114,14 @@ Phase 7: added compound typed helpers and codec support for common arrays, a{sv}
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/decode.go — Recursive JavaScript value decoding
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/typed_values.go — array/dict/struct helper exports
 
+
+## 2026-06-15
+
+Phase 8: added xgoja provider, bundled Glazed help docs, bundled jsverb examples, and repeatable xgoja build targets (commit 50ad0ab).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — xgoja doctor/build targets
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/xgoja/provider/provider.go — provider registration
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/xgoja.yaml — xgoja build spec
+

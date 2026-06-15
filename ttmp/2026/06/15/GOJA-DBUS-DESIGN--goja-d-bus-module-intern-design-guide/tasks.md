@@ -75,3 +75,12 @@
 - [x] Add core codec support for common arrays, `a{sv}`, and flat structs.
 - [x] Update README and TypeScript declarations for compound helper subset.
 - [x] Commit runtime cleanup (`3d3f7b8`) and compound codec foundations (`833cb85`).
+
+## Phase 8 — xgoja binary, bundled help, and example verbs
+
+- [x] Add a goja-dbus xgoja provider package that registers the native `dbus` module.
+- [x] Embed Glazed help pages for `getting-started`, `user-guide`, and `api-reference`.
+- [x] Embed JavaScript example verbs for typed helper inspection, policy-denied system bus behavior, and a printable `GetId` script.
+- [x] Add `xgoja.yaml` selecting the dbus provider module, core `events`/`timer`, provider help docs, and jsverb examples.
+- [x] Add `make xgoja-doctor` and `make xgoja-build` targets for repeatable validation/build from the sibling go-go-goja checkout.
+- [x] Validate with `GOWORK=off go test ./... -count=1`, `make xgoja-doctor`, `make xgoja-build`, help page rendering, and bundled verb execution.

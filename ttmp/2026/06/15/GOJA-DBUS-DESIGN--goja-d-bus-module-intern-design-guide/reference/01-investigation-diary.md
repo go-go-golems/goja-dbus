@@ -10,10 +10,18 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: goja-dbus/ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/design-doc/01-goja-d-bus-module-intern-design-and-implementation-guide.md
+    - Path: pkg/xgoja/provider/docs/help/01-getting-started.md
+      Note: bundled Glazed help docs for commit 50ad0ab
+    - Path: pkg/xgoja/provider/provider.go
+      Note: xgoja provider registration for commit 50ad0ab
+    - Path: pkg/xgoja/provider/verbs/examples.js
+      Note: bundled jsverb examples for commit 50ad0ab
+    - Path: ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/design-doc/01-goja-d-bus-module-intern-design-and-implementation-guide.md
       Note: Primary deliverable produced during the investigation
-    - Path: goja-dbus/ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/sources/01-dbus.md
+    - Path: ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/sources/01-dbus.md
       Note: Imported source material referenced by the diary
+    - Path: xgoja.yaml
+      Note: generated binary build spec for commit 50ad0ab
 ExternalSources:
     - ../sources/01-dbus.md
 Summary: Chronological notes for creating the Goja D-Bus design ticket and intern guide.
@@ -21,6 +29,7 @@ LastUpdated: 2026-06-15T17:45:00-04:00
 WhatFor: Resume or review the investigation behind the Goja D-Bus module design guide.
 WhenToUse: When continuing implementation, reviewing evidence, or checking what commands and failures occurred during ticket creation.
 ---
+
 
 
 # Diary
@@ -915,4 +924,143 @@ cd goja-dbus
 gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
 GOWORK=off go test ./... -count=1
 git commit -m "Add compound D-Bus typed helpers"
+```
+
+## Step 10: xgoja Binary with Bundled Help and Example Verbs
+
+I added a goja-dbus xgoja provider so the project can build a generated binary that carries the native `dbus` module, user-facing Glazed help pages, and bundled JavaScript example verbs. This turns the module from a Go embedding-only package into a runnable documentation and smoke-test host.
+
+The generated host now has `getting-started`, `user-guide`, and `api-reference` help pages, plus example verbs for typed helper shapes, default system-bus policy denial, and a printable `GetId` script for machines with a session bus.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create an `xgoja`-built binary for `goja-dbus` that bundles documentation (`getting-started`, `user-guide`, `api-reference`) in Glazed help entry format and exposes various verbs as examples. Use `xgoja help --all` to find relevant help pages."
+
+**Assistant interpretation:** Add an xgoja build spec and provider package for goja-dbus, ship help docs and jsverb examples through provider sources, build the generated binary, and validate the bundled commands.
+
+**Inferred user intent:** Make goja-dbus easy to explore as a standalone xgoja-generated CLI, not only as a native module embedded by another Go program.
+
+**Commit (code):** `50ad0abd0bdb49c86bc77b523416f55ac6fa543d` — "Add xgoja provider with bundled DBus docs"
+
+### What I did
+
+- Added `pkg/xgoja/provider/provider.go`, which registers provider package `dbus` with:
+  - the existing native `dbus` module;
+  - a provider help source named `docs`;
+  - a provider jsverb source named `examples`.
+- Added Glazed help entries:
+  - `pkg/xgoja/provider/docs/help/01-getting-started.md`;
+  - `pkg/xgoja/provider/docs/help/02-user-guide.md`;
+  - `pkg/xgoja/provider/docs/help/03-api-reference.md`.
+- Added bundled example verbs in `pkg/xgoja/provider/verbs/examples.js`:
+  - `typed-values`;
+  - `denied-system-bus`;
+  - `get-id-script`.
+- Added `xgoja.yaml` selecting:
+  - the goja-dbus provider module `dbus`;
+  - core `events` and `timer` modules;
+  - provider help docs;
+  - provider jsverbs;
+  - `eval`, `run`, and `verbs` builtin commands.
+- Added Makefile targets:
+  - `make xgoja-doctor`;
+  - `make xgoja-build`.
+- Updated `README.md` with build and usage instructions for `dist/goja-dbus-xgoja`.
+- Ran validation and smoke tests.
+
+### Why
+
+- xgoja provider sources are the idiomatic way to ship a native module, provider-owned help docs, and provider-owned jsverbs into a generated binary.
+- The help docs provide a user-facing layer over the lower-level design ticket and README.
+- Example verbs make the binary useful even on hosts without a working session bus: `typed-values` and `denied-system-bus` are safe always-on examples.
+
+### What worked
+
+- `GOWORK=off go test ./... -count=1` passed.
+- `make xgoja-doctor` passed schema, module-resolution, and source-plan checks.
+- `make xgoja-build` produced `dist/goja-dbus-xgoja`.
+- The generated binary rendered all three help pages:
+  - `./dist/goja-dbus-xgoja help getting-started`;
+  - `./dist/goja-dbus-xgoja help user-guide`;
+  - `./dist/goja-dbus-xgoja help api-reference`.
+- The generated binary ran bundled example verbs:
+  - `./dist/goja-dbus-xgoja verbs examples typed-values`;
+  - `./dist/goja-dbus-xgoja verbs examples denied-system-bus`;
+  - `./dist/goja-dbus-xgoja verbs examples get-id-script`.
+
+### What didn't work
+
+- Running `GOWORK=off go run ../go-go-goja/cmd/xgoja doctor -f xgoja.yaml` from inside `goja-dbus` initially failed because the `goja-dbus` module did not have all xgoja command transitive `go.sum` entries:
+  - `missing go.sum entry for module providing package github.com/charmbracelet/glamour`
+  - `missing go.sum entry for module providing package github.com/evanw/esbuild/pkg/api`
+  - plus related Glazed, bobatea, tree-sitter, and protobuf/grpc entries.
+- Fix: make the repeatable targets invoke `go run ./cmd/xgoja` from the sibling `../go-go-goja` module, while pointing `-f` and `--output` back at `goja-dbus`.
+- The first generated binary could not load provider help docs:
+  - `load help source docs: unknown provider help source dbus.docs`
+- Fix: align the goja-dbus provider package ID with the xgoja provider id by registering `PackageID = "dbus"`.
+- The next generated binary could not resolve core modules:
+  - `runtime references unknown provider module core.events`
+- Fix: use the core provider package id `go-go-goja-core` in `xgoja.yaml` instead of a local alias `core`.
+- The first jsverb metadata used `output: "object"`, which the scanner rejected:
+  - `examples.js#deniedSystemBus has unsupported output mode "object"`
+- Fix: omit the output mode for structured object/table output and keep only `output: "text"` for the script-printing verb.
+- The generated binary's help command does not support `help --all`, even though the source xgoja command used during discovery did. I updated the bundled getting-started page to use `help`, `help getting-started`, `help user-guide`, and `help api-reference` for the generated binary.
+
+### What I learned
+
+- In xgoja provider references, the provider id used in `runtime.modules` and provider source selectors must match the package id registered by the provider, not merely a convenient YAML alias.
+- Provider-shipped help and jsverb sources are a good fit for this module because they keep documentation/examples versioned with the native provider.
+- jsverb `output` is intentionally limited; plain structured object returns should not specify `output: "object"`.
+
+### What was tricky to build
+
+- The most subtle issue was provider identity. The generated host reported unknown provider sources/modules at runtime, not at build time, because the spec could compile while still referencing provider ids that did not match registered package ids. I fixed this by aligning `PackageID = "dbus"` and using `go-go-goja-core` for the first-party core provider.
+- Build ergonomics were also tricky because invoking another module's `go run` from the goja-dbus module caused missing `go.sum` failures. The Makefile now runs xgoja from the sibling module and writes the binary to `../goja-dbus/dist/goja-dbus-xgoja`.
+- The help documentation had to distinguish between the source `xgoja` tool, which was used for discovery and supports `help --all`, and the generated goja-dbus binary, whose help command lists topics without `--all`.
+
+### What warrants a second pair of eyes
+
+- Review `xgoja.yaml` provider ids and explicit local replacements before using this spec outside the current sibling-checkout workspace.
+- Review whether the generated binary should eventually be built by an installed/released `xgoja` binary rather than by `cd ../go-go-goja && go run ./cmd/xgoja`.
+- Review the public help page claims against future API changes, especially once properties helpers and real compound integration tests land.
+
+### What should be done in the future
+
+- Add a CI smoke target that builds `dist/goja-dbus-xgoja` and runs help/verb smoke tests when a sibling or released xgoja is available.
+- Add properties client helpers and then update the xgoja help docs and examples with real `org.freedesktop.DBus.Properties` usage.
+- Consider adding an opt-in xgoja integration verb/test that runs the real `GetId` call when a session bus is present.
+
+### Code review instructions
+
+- Start with `pkg/xgoja/provider/provider.go` to verify provider registration, embedded filesystems, and module loader wiring.
+- Review `xgoja.yaml` for provider ids, selected runtime modules, sources, commands, and output artifact.
+- Review `pkg/xgoja/provider/docs/help/*.md` for Glazed help frontmatter and user-facing accuracy.
+- Review `pkg/xgoja/provider/verbs/examples.js` for safe examples and jsverb metadata.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+  - `make xgoja-doctor`
+  - `make xgoja-build`
+  - `./dist/goja-dbus-xgoja help getting-started`
+  - `./dist/goja-dbus-xgoja help user-guide`
+  - `./dist/goja-dbus-xgoja help api-reference`
+  - `./dist/goja-dbus-xgoja verbs examples typed-values`
+  - `./dist/goja-dbus-xgoja verbs examples denied-system-bus`
+  - `./dist/goja-dbus-xgoja verbs examples get-id-script`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+GOWORK=off go test ./... -count=1
+make xgoja-doctor
+make xgoja-build
+./dist/goja-dbus-xgoja help getting-started
+./dist/goja-dbus-xgoja help user-guide
+./dist/goja-dbus-xgoja help api-reference
+./dist/goja-dbus-xgoja verbs examples typed-values
+./dist/goja-dbus-xgoja verbs examples denied-system-bus
+./dist/goja-dbus-xgoja verbs examples get-id-script
+git commit -m "Add xgoja provider with bundled DBus docs"
 ```
