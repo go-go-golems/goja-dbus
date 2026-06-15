@@ -24,6 +24,7 @@ Functions:
   session(): Creates a session-bus builder.
   system(): Creates a system-bus builder. Denied by default policy unless enabled.
   connect(address): Creates an explicit-address bus builder.
+  bus.signals(): Creates a signal match builder after connect.
   u32(value): Wraps an unsigned 32-bit integer.
   i32(value): Wraps a signed 32-bit integer.
   path(value): Validates and wraps a D-Bus object path.
@@ -56,6 +57,7 @@ func (m *module) TypeScriptModule() *spec.Module {
 			"interface DBusBus {",
 			"  close(): Promise<void>;",
 			"  destination(name: string): RemoteDestination;",
+			"  signals(): SignalBuilder;",
 			"}",
 			"interface RemoteDestination { object(path: string): RemoteObject; }",
 			"interface RemoteObject { interface(name: string): RemoteInterface; }",
@@ -65,6 +67,16 @@ func (m *module) TypeScriptModule() *spec.Module {
 			"  out(signature: string): MethodCallBuilder;",
 			"  timeout(ms: number): MethodCallBuilder;",
 			"  call(): Promise<any>;",
+			"}",
+			"interface SignalPayload { sender: string; path: string; name: string; body: any[]; }",
+			"interface SignalSubscription { close(): Promise<void>; }",
+			"interface EventEmitterLike { on(name: string, listener: (...args: any[]) => void): any; }",
+			"interface SignalBuilder {",
+			"  sender(name: string): SignalBuilder;",
+			"  path(path: string): SignalBuilder;",
+			"  interface(name: string): SignalBuilder;",
+			"  member(name: string): SignalBuilder;",
+			"  listen(emitter: EventEmitterLike): Promise<SignalSubscription>;",
 			"}",
 			"export function session(): BusBuilder;",
 			"export function system(): BusBuilder;",

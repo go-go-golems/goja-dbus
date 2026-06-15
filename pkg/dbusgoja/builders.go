@@ -64,6 +64,9 @@ func newBusObject(vm *goja.Runtime, services runtimebridge.RuntimeServices, bus 
 	_ = obj.Set("destination", func(destination string) goja.Value {
 		return newDestinationObject(vm, services, bus, destination)
 	})
+	_ = obj.Set("signals", func() goja.Value {
+		return newSignalBuilder(vm, services, bus, dbuscore.SignalMatchRequest{})
+	})
 	return obj
 }
 
