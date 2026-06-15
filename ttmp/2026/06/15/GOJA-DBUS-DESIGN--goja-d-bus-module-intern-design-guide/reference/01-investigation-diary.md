@@ -261,3 +261,99 @@ GOWORK=off go mod tidy
 GOWORK=off go test ./...
 git commit -m "Normalize goja-dbus repository"
 ```
+
+## Step 3: Phase 2 Native Module Skeleton and Typed Helpers
+
+I added the first real `dbus` native module implementation. This phase does not connect to D-Bus yet; it establishes the package boundaries, module registration, TypeScript declaration hook, JavaScript export object, and explicit typed-value helpers that later method-call and property code will consume.
+
+The key implementation choice was to keep D-Bus type validation in `pkg/dbuscore` and JavaScript object construction in `pkg/dbusgoja`. That preserves the design-doc boundary where core D-Bus logic remains testable without Goja, while the adapter owns lowerCamel JavaScript object shape and Goja exceptions.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue executing the documented implementation phases with focused code commits and diary updates.
+
+**Inferred user intent:** Build the D-Bus module incrementally while keeping each phase reviewable and validated.
+
+**Commit (code):** `7927235e43d6c9246dd9fa6ef6193433b5e497db` — "Add dbus native module skeleton"
+
+### What I did
+
+- Added `pkg/dbuscore/types.go` with `TypedValue`, scalar constructors, object path validation, signature validation, variant wrapping, and integer-bound helpers.
+- Added `pkg/dbuscore/policy.go` with an intentionally small Phase 2 policy placeholder.
+- Added `pkg/dbusgoja/typed_values.go` to expose JavaScript helpers:
+  - `dbus.u32(value)`
+  - `dbus.i32(value)`
+  - `dbus.path(value)`
+  - `dbus.signature(value)`
+  - `dbus.variant(signature, value)`
+- Added `pkg/dbusgoja/module_object.go` to construct the JavaScript export object.
+- Added `pkg/modules/dbus/module.go` implementing `modules.NativeModule` and `modules.TypeScriptDeclarer`.
+- Added unit tests in `pkg/dbuscore/types_test.go`.
+- Added runtime integration tests in `pkg/modules/dbus/module_test.go` that blank-import the module and `require("dbus")` through go-go-goja.
+- Added dependencies on `go-go-goja`, `goja`, and `godbus/dbus/v5`; added a local replace to `../go-go-goja` for workspace development.
+- Ran `gofmt` and `GOWORK=off go test ./... -count=1`.
+
+### Why
+
+- Later D-Bus calls need explicit typed values because JavaScript numbers and objects do not carry enough D-Bus type information.
+- The module needs to prove it can register with go-go-goja before adding connection and method-call complexity.
+- The TypeScript declaration hook should exist from the start so the public API stays documented as it grows.
+
+### What worked
+
+- The module loads via `require("dbus")` when `pkg/modules/dbus` is blank-imported before runtime creation.
+- JavaScript helper objects expose lowerCamel properties: `__dbusTyped`, `signature`, and `value`.
+- `GOWORK=off go test ./... -count=1` passed after fixing the object path/signature JavaScript presentation issue.
+
+### What didn't work
+
+- The first `TestRequireDBusTypedHelpers` run failed:
+  - Command: `GOWORK=off go test ./... -count=1`
+  - Error: `run script: Error: bad path at <eval>:8:67(69)`
+- Cause: `dbuscore.ObjectPath` stored a `godbus.ObjectPath`, and the Goja object exposed that Go-specific value directly instead of a JavaScript string.
+- Fix: `typedValueToObject` now converts `godbus.ObjectPath` to `string(v)` and `godbus.Signature` to `v.String()` for JavaScript-facing `value` fields while preserving typed validation in core.
+
+### What I learned
+
+- For JavaScript-facing helper results, Go-backed domain values should be normalized into plain JavaScript-readable fields unless the design explicitly chooses reflected Go objects.
+- A separate adapter layer pays off immediately: the pure core can preserve D-Bus-aware values, while `dbusgoja` controls what JavaScript sees.
+- The go-go-goja engine can include this external module in tests with `UseModuleMiddleware(engine.MiddlewareOnly("dbus"))` as long as the module package is blank-imported first.
+
+### What was tricky to build
+
+- The module is outside the `go-go-goja` repository, so tests must explicitly blank-import `github.com/go-go-golems/goja-dbus/pkg/modules/dbus`; otherwise the module's `init()` registration never runs.
+- `go.mod` needs a local `replace github.com/go-go-golems/go-go-goja => ../go-go-goja` so `GOWORK=off` tests can use the checked-out go-go-goja implementation.
+- The JS helper functions use `goja.FunctionCall` where range validation depends on numeric conversion and errors must be thrown with `panic(vm.NewGoError(err))`.
+
+### What warrants a second pair of eyes
+
+- The `DBusTypedValue` JavaScript shape currently uses a visible `__dbusTyped` marker. This is simple and testable, but later codec code should decide whether the marker should become non-enumerable or internal.
+- The local `replace` is useful for development but may need a release strategy once go-go-goja publishes the required version.
+- The Phase 2 `Policy` type is intentionally incomplete and must be expanded before system bus or service ownership features are exposed.
+
+### What should be done in the future
+
+- Add decoding from JavaScript `DBusTypedValue` objects back into `dbuscore.TypedValue` for method-call inputs.
+- Add session bus connection builders and Promise-based method calls.
+- Expand TypeScript declarations as builders are added.
+
+### Code review instructions
+
+- Start with `pkg/modules/dbus/module.go` to confirm the `NativeModule` and TypeScript declaration shape.
+- Review `pkg/dbuscore/types.go` for D-Bus validation behavior.
+- Review `pkg/dbusgoja/typed_values.go` for JavaScript-facing object shape and thrown errors.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
+GOWORK=off go test ./... -count=1
+git commit -m "Add dbus native module skeleton"
+```

@@ -37,3 +37,15 @@ Phase 1: normalized goja-dbus repository identity and command path (commit 1d42a
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus-demo/main.go — Renamed demo command
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/go.mod — Renamed module path
 
+
+## 2026-06-15
+
+Phase 2: added dbus native module skeleton and typed helper tests (commit 7927235e43d6c9246dd9fa6ef6193433b5e497db).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/types.go — Pure Go typed D-Bus value helpers
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/typed_values.go — JavaScript-facing typed helper exports
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module.go — NativeModule and TypeScript declaration implementation
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module_test.go — Runtime require integration tests
+

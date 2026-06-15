@@ -21,13 +21,13 @@
 
 ## Phase 2 — Native module skeleton and typed scalar helpers
 
-- [ ] Add `pkg/dbuscore` for pure Go policy and typed D-Bus values.
-- [ ] Add `pkg/dbusgoja` for Goja-facing exports and value conversion.
-- [ ] Add `pkg/modules/dbus` implementing `modules.NativeModule` and `modules.TypeScriptDeclarer`.
-- [ ] Add runtime integration test proving `require("dbus")` loads when the module package is blank-imported.
-- [ ] Add unit tests for scalar helpers (`u32`, `i32`, `path`, `signature`, `variant`).
-- [ ] Run `gofmt` and `GOWORK=off go test ./...`.
-- [ ] Commit module skeleton and helpers.
+- [x] Add `pkg/dbuscore` for pure Go policy and typed D-Bus values.
+- [x] Add `pkg/dbusgoja` for Goja-facing exports and value conversion.
+- [x] Add `pkg/modules/dbus` implementing `modules.NativeModule` and `modules.TypeScriptDeclarer`.
+- [x] Add runtime integration test proving `require("dbus")` loads when the module package is blank-imported.
+- [x] Add unit tests for scalar helpers (`u32`, `i32`, `path`, `signature`, `variant`).
+- [x] Run `gofmt` and `GOWORK=off go test ./...`.
+- [x] Commit module skeleton and helpers (`7927235`).
 
 ## Phase 3 — Session bus connect and method calls
 
