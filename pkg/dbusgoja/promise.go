@@ -21,12 +21,12 @@ func promise(
 		result, err := work(callCtx)
 		_ = services.PostWithCustomContext(callCtx, op+".settle", func(_ context.Context, ownerVM *goja.Runtime) {
 			if err != nil {
-				_ = reject(ownerVM.NewGoError(err))
+				_ = reject(dbusError(ownerVM, err))
 				return
 			}
 			value, convErr := toValue(ownerVM, result)
 			if convErr != nil {
-				_ = reject(ownerVM.NewGoError(convErr))
+				_ = reject(dbusError(ownerVM, convErr))
 				return
 			}
 			_ = resolve(value)

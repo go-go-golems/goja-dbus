@@ -74,11 +74,11 @@ func TestDBusSystemConnectDeniedByDefault(t *testing.T) {
 
 	_, err := rt.Owner.Call(context.Background(), "dbus.system.denied.setup", func(_ context.Context, vm *goja.Runtime) (any, error) {
 		_, runErr := vm.RunString(`
-globalThis.dbusState = { done: false, error: "" };
+globalThis.dbusState = { done: false, error: "", code: "" };
 const dbus = require("dbus");
 dbus.system().connect()
   .then(() => { globalThis.dbusState.done = true; })
-  .catch((err) => { globalThis.dbusState.error = String(err); });
+  .catch((err) => { globalThis.dbusState.error = String(err); globalThis.dbusState.code = err.code || ""; });
 `)
 		return nil, runErr
 	})
@@ -89,6 +89,9 @@ dbus.system().connect()
 	state := waitDBusState(t, rt)
 	if state.Error == "" {
 		t.Fatalf("expected system bus denial, state=%+v", state)
+	}
+	if state.Code != "ERR_DBUS" {
+		t.Fatalf("error code = %q, want ERR_DBUS", state.Code)
 	}
 }
 
@@ -133,6 +136,7 @@ type dbusState struct {
 	Done  bool   `json:"done"`
 	Error string `json:"error"`
 	ID    string `json:"id"`
+	Code  string `json:"code"`
 }
 
 func newDBusRuntime(t *testing.T) *engine.Runtime {
