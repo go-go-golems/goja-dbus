@@ -18,9 +18,12 @@ func (m *module) Name() string { return "dbus" }
 
 func (m *module) Doc() string {
 	return `
-The dbus module exposes explicit D-Bus typed value helpers.
+The dbus module exposes D-Bus connection builders and explicit typed value helpers.
 
 Functions:
+  session(): Creates a session-bus builder.
+  system(): Creates a system-bus builder. Denied by default policy unless enabled.
+  connect(address): Creates an explicit-address bus builder.
   u32(value): Wraps an unsigned 32-bit integer.
   i32(value): Wraps a signed 32-bit integer.
   path(value): Validates and wraps a D-Bus object path.
@@ -39,6 +42,33 @@ func (m *module) TypeScriptModule() *spec.Module {
 			"  readonly signature: string;",
 			"  readonly value: any;",
 			"}",
+			"interface DBusPolicy {",
+			"  allowSessionBus?: boolean;",
+			"  allowSystemBus?: boolean;",
+			"  denySystemBus?: boolean;",
+			"  allowCall?: string[];",
+			"}",
+			"interface BusBuilder {",
+			"  timeout(ms: number): BusBuilder;",
+			"  policy(policy: DBusPolicy): BusBuilder;",
+			"  connect(): Promise<DBusBus>;",
+			"}",
+			"interface DBusBus {",
+			"  close(): Promise<void>;",
+			"  destination(name: string): RemoteDestination;",
+			"}",
+			"interface RemoteDestination { object(path: string): RemoteObject; }",
+			"interface RemoteObject { interface(name: string): RemoteInterface; }",
+			"interface RemoteInterface { method(name: string): MethodCallBuilder; }",
+			"interface MethodCallBuilder {",
+			"  in(signature: string, value: any): MethodCallBuilder;",
+			"  out(signature: string): MethodCallBuilder;",
+			"  timeout(ms: number): MethodCallBuilder;",
+			"  call(): Promise<any>;",
+			"}",
+			"export function session(): BusBuilder;",
+			"export function system(): BusBuilder;",
+			"export function connect(address: string): BusBuilder;",
 			"export function u32(value: number): DBusTypedValue;",
 			"export function i32(value: number): DBusTypedValue;",
 			"export function path(value: string): DBusTypedValue;",
