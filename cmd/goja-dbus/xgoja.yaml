@@ -12,12 +12,12 @@ providers:
     import: github.com/go-go-golems/go-go-goja/pkg/xgoja/providers/core
     register: Register
     module:
-      replace: ../go-go-goja
+      replace: ../../../go-go-goja
   - id: dbus
     import: github.com/go-go-golems/goja-dbus/pkg/xgoja/provider
     register: Register
     module:
-      replace: .
+      replace: ../..
 runtime:
   modules:
     - provider: dbus

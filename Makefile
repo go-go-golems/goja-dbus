@@ -35,10 +35,10 @@ build:
 	GOWORK=off go build ./...
 
 xgoja-doctor:
-	cd ../go-go-goja && GOWORK=off go run ./cmd/xgoja doctor -f ../goja-dbus/xgoja.yaml
+	cd ../go-go-goja && GOWORK=off go run ./cmd/xgoja doctor -f ../goja-dbus/cmd/goja-dbus/xgoja.yaml
 
 xgoja-build:
-	cd ../go-go-goja && GOWORK=off go run ./cmd/xgoja build -f ../goja-dbus/xgoja.yaml --output ../goja-dbus/dist/goja-dbus-xgoja
+	cd ../go-go-goja && GOWORK=off go run ./cmd/xgoja build -f ../goja-dbus/cmd/goja-dbus/xgoja.yaml --output ../goja-dbus/dist/goja-dbus-xgoja
 
 logcopter-generate:
 	GOWORK=off go generate ./...

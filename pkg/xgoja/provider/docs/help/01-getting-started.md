@@ -29,7 +29,7 @@ Build from this workspace with the checked-in xgoja spec:
 make xgoja-build
 ```
 
-The target runs the sibling `go-go-goja` checkout's `xgoja` command and writes the generated binary back into this repository. If you already have an `xgoja` binary installed, you can also run `xgoja build -f xgoja.yaml` from the repository root.
+The target runs the sibling `go-go-goja` checkout's `xgoja` command and writes the generated binary back into this repository. If you already have an `xgoja` binary installed, you can also run `xgoja build -f cmd/goja-dbus/xgoja.yaml` from the repository root.
 
 The default output is:
 
@@ -80,10 +80,10 @@ For a real session-bus call, use the script printed by `get-id-script` or write 
 
 | Problem | Cause | Solution |
 | --- | --- | --- |
-| `require("dbus")` fails | The generated binary was not built from this repository's `xgoja.yaml` | Rebuild with `GOWORK=off go run ../go-go-goja/cmd/xgoja build -f xgoja.yaml` |
+| `require("dbus")` fails | The generated binary was not built from this repository's `cmd/goja-dbus/xgoja.yaml` | Rebuild with `make xgoja-build` |
 | `system().connect()` rejects | The default policy denies system-bus access | Use session bus examples first; host policy support should be reviewed before enabling system bus access |
 | A real D-Bus call fails | No session bus is available or the service is missing | Run on a desktop/session environment and start with `org.freedesktop.DBus.GetId` |
-| Help pages are missing | The provider help source was not selected in `xgoja.yaml` | Check the `sources` entry with `kind: help` and provider source `docs` |
+| Help pages are missing | The provider help source was not selected in `cmd/goja-dbus/xgoja.yaml` | Check the `sources` entry with `kind: help` and provider source `docs` |
 
 ## See Also
 

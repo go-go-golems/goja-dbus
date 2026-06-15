@@ -136,7 +136,7 @@ func main() {
 
 ## xgoja binary
 
-Build the generated documentation/example host from this workspace:
+Build the generated documentation/example host from `cmd/goja-dbus/xgoja.yaml`:
 
 ```bash
 make xgoja-doctor
