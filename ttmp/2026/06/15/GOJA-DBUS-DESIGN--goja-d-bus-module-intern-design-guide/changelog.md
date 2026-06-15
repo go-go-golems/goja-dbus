@@ -146,3 +146,12 @@ Renamed the generated xgoja artifact from goja-dbus-xgoja to goja-dbus and updat
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — updated generated binary commands
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus/xgoja.yaml — renamed generated app and artifact
 
+
+## 2026-06-15
+
+Updated the bundled user guide's example commands to use dist/goja-dbus after the artifact rename.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/xgoja/provider/docs/help/02-user-guide.md — updated command examples
+
