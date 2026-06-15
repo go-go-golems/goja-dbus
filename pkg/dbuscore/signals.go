@@ -31,6 +31,7 @@ type Subscription struct {
 	ch      chan *godbus.Signal
 	cancel  context.CancelFunc
 	options []godbus.MatchOption
+	onClose func(*Subscription)
 
 	closeOnce sync.Once
 	closeErr  error
@@ -59,6 +60,8 @@ func (b *Bus) Listen(ctx context.Context, req SignalMatchRequest, sink SignalSin
 	conn.Signal(ch)
 	subCtx, cancel := context.WithCancel(ctx)
 	sub := &Subscription{conn: conn, ch: ch, cancel: cancel, options: options}
+	b.registerSubscription(sub)
+	sub.onClose = b.unregisterSubscription
 	go sub.run(subCtx, sink)
 	return sub, nil
 }
@@ -97,6 +100,9 @@ func (s *Subscription) Close(ctx context.Context) error {
 		if s.conn != nil && len(s.options) > 0 {
 			s.closeErr = s.conn.RemoveMatchSignalContext(ctx, s.options...)
 		}
+		if s.onClose != nil {
+			s.onClose(s)
+		}
 	})
 	return s.closeErr
 }
@@ -126,4 +132,30 @@ func normalizeSignalBody(body []any) []any {
 		out = append(out, normalizeDBusValue(value))
 	}
 	return out
+}
+
+func (b *Bus) registerSubscription(sub *Subscription) {
+	if b == nil || sub == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.closed {
+		return
+	}
+	if b.subscriptions == nil {
+		b.subscriptions = map[*Subscription]struct{}{}
+	}
+	b.subscriptions[sub] = struct{}{}
+}
+
+func (b *Bus) unregisterSubscription(sub *Subscription) {
+	if b == nil || sub == nil {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.subscriptions != nil {
+		delete(b.subscriptions, sub)
+	}
 }

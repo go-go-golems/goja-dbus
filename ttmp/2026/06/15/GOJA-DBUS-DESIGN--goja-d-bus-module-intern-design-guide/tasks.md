@@ -45,7 +45,7 @@
 - [x] Add D-Bus signal match request types in `dbuscore`.
 - [x] Add subscription lifecycle with `AddMatchSignalContext`, `Signal`, `RemoveSignal`, and `RemoveMatchSignalContext`.
 - [x] Expose EventEmitter-based `signals().listen(emitter)` in `dbusgoja`.
-- [ ] Ensure subscription goroutines exit on runtime shutdown without requiring explicit bus/subscription close.
+- [x] Ensure subscription goroutines exit on runtime shutdown without requiring explicit bus/subscription close (`resourceRegistry` closes tracked buses on lifetime cancellation).
 - [x] Add unit tests for match option construction and close idempotency where possible.
 - [x] Commit signal support (`a2b3d5c`).
 

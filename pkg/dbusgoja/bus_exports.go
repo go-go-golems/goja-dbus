@@ -8,9 +8,9 @@ import (
 	"github.com/go-go-golems/goja-dbus/pkg/dbuscore"
 )
 
-func exportBusBuilders(vm *goja.Runtime, services runtimebridge.RuntimeServices, target *goja.Object) error {
+func exportBusBuilders(vm *goja.Runtime, services runtimebridge.RuntimeServices, registry *resourceRegistry, target *goja.Object) error {
 	if err := target.Set("session", func() goja.Value {
-		return newBusBuilder(vm, services, dbuscore.ConnectOptions{
+		return newBusBuilder(vm, services, registry, dbuscore.ConnectOptions{
 			Kind:   dbuscore.BusSession,
 			Policy: dbuscore.DefaultPolicy(),
 		})
@@ -19,7 +19,7 @@ func exportBusBuilders(vm *goja.Runtime, services runtimebridge.RuntimeServices,
 	}
 
 	if err := target.Set("system", func() goja.Value {
-		return newBusBuilder(vm, services, dbuscore.ConnectOptions{
+		return newBusBuilder(vm, services, registry, dbuscore.ConnectOptions{
 			Kind:   dbuscore.BusSystem,
 			Policy: dbuscore.DefaultPolicy(),
 		})
@@ -28,7 +28,7 @@ func exportBusBuilders(vm *goja.Runtime, services runtimebridge.RuntimeServices,
 	}
 
 	if err := target.Set("connect", func(address string) goja.Value {
-		return newBusBuilder(vm, services, dbuscore.ConnectOptions{
+		return newBusBuilder(vm, services, registry, dbuscore.ConnectOptions{
 			Kind:    dbuscore.BusAddress,
 			Address: address,
 			Policy:  dbuscore.DefaultPolicy(),

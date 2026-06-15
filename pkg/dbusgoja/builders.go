@@ -14,11 +14,12 @@ import (
 type busBuilder struct {
 	vm       *goja.Runtime
 	services runtimebridge.RuntimeServices
+	registry *resourceRegistry
 	opts     dbuscore.ConnectOptions
 }
 
-func newBusBuilder(vm *goja.Runtime, services runtimebridge.RuntimeServices, opts dbuscore.ConnectOptions) *goja.Object {
-	builder := busBuilder{vm: vm, services: services, opts: opts}
+func newBusBuilder(vm *goja.Runtime, services runtimebridge.RuntimeServices, registry *resourceRegistry, opts dbuscore.ConnectOptions) *goja.Object {
+	builder := busBuilder{vm: vm, services: services, registry: registry, opts: opts}
 	return builder.toObject()
 }
 
@@ -46,16 +47,18 @@ func (b busBuilder) toObject() *goja.Object {
 			if !ok {
 				return nil, fmt.Errorf("dbus: unexpected connect result %T", result)
 			}
-			return newBusObject(vm, b.services, bus), nil
+			b.registry.addBus(bus)
+			return newBusObject(vm, b.services, b.registry, bus), nil
 		})
 	})
 	return obj
 }
 
-func newBusObject(vm *goja.Runtime, services runtimebridge.RuntimeServices, bus *dbuscore.Bus) goja.Value {
+func newBusObject(vm *goja.Runtime, services runtimebridge.RuntimeServices, registry *resourceRegistry, bus *dbuscore.Bus) goja.Value {
 	obj := vm.NewObject()
 	_ = obj.Set("close", func() goja.Value {
 		return promise(vm, services, "dbus.bus.close", func(ctx context.Context) (any, error) {
+			registry.removeBus(bus)
 			return nil, bus.Close(ctx)
 		}, func(*goja.Runtime, any) (goja.Value, error) {
 			return goja.Undefined(), nil

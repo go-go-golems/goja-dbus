@@ -23,7 +23,6 @@ Implemented:
 
 Deferred:
 
-- automatic runtime-shutdown cleanup for open D-Bus resources;
 - compound D-Bus signatures such as arrays, dictionaries, and structs;
 - JavaScript-backed D-Bus service export.
 

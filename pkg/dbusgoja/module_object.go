@@ -16,11 +16,13 @@ func NewModuleObject(vm *goja.Runtime) (*goja.Object, error) {
 		return nil, fmt.Errorf("dbus: module requires go-go-goja runtime services")
 	}
 
+	registry := newResourceRegistry(services.Lifetime())
+
 	obj := vm.NewObject()
 	if err := exportTypedHelpers(vm, obj); err != nil {
 		return nil, err
 	}
-	if err := exportBusBuilders(vm, services, obj); err != nil {
+	if err := exportBusBuilders(vm, services, registry, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil

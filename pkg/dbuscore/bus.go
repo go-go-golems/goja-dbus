@@ -2,6 +2,7 @@ package dbuscore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -31,8 +32,9 @@ type Bus struct {
 	policy  Policy
 	timeout time.Duration
 
-	mu     sync.Mutex
-	closed bool
+	mu            sync.Mutex
+	closed        bool
+	subscriptions map[*Subscription]struct{}
 }
 
 type Arg struct {
@@ -84,10 +86,16 @@ func Connect(ctx context.Context, opts ConnectOptions) (*Bus, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Bus{conn: conn, kind: opts.Kind, policy: policy, timeout: opts.Timeout}, nil
+	return &Bus{
+		conn:          conn,
+		kind:          opts.Kind,
+		policy:        policy,
+		timeout:       opts.Timeout,
+		subscriptions: map[*Subscription]struct{}{},
+	}, nil
 }
 
-func (b *Bus) Close(context.Context) error {
+func (b *Bus) Close(ctx context.Context) error {
 	if b == nil {
 		return nil
 	}
@@ -99,11 +107,23 @@ func (b *Bus) Close(context.Context) error {
 	b.closed = true
 	conn := b.conn
 	b.conn = nil
-	b.mu.Unlock()
-	if conn == nil {
-		return nil
+	subs := make([]*Subscription, 0, len(b.subscriptions))
+	for sub := range b.subscriptions {
+		subs = append(subs, sub)
 	}
-	return conn.Close()
+	b.subscriptions = nil
+	b.mu.Unlock()
+
+	var retErr error
+	for _, sub := range subs {
+		if err := sub.Close(ctx); err != nil {
+			retErr = errors.Join(retErr, err)
+		}
+	}
+	if conn != nil {
+		retErr = errors.Join(retErr, conn.Close())
+	}
+	return retErr
 }
 
 func (b *Bus) Call(ctx context.Context, req MethodCallRequest) (any, error) {
@@ -149,6 +169,15 @@ func (b *Bus) Call(ctx context.Context, req MethodCallRequest) (any, error) {
 		return nil, call.Err
 	}
 	return Unmarshal(req.OutputSignature, call.Body)
+}
+
+func (b *Bus) Closed() bool {
+	if b == nil {
+		return true
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.closed
 }
 
 func (b *Bus) connection() (*godbus.Conn, error) {
