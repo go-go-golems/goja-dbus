@@ -20,6 +20,8 @@ Implemented:
 - Default-denied system bus policy.
 - Remote method-call builders for scalar signatures.
 - EventEmitter-based signal subscription builders.
+- xgoja provider package with bundled `getting-started`, `user-guide`, and `api-reference` Glazed help pages.
+- xgoja-bundled JavaScript example verbs for typed values, policy denial, and a session-bus `GetId` script.
 
 Deferred:
 
@@ -131,6 +133,29 @@ func main() {
     // Run JavaScript that calls require("dbus").
 }
 ```
+
+## xgoja binary
+
+Build the generated documentation/example host from this workspace:
+
+```bash
+make xgoja-doctor
+make xgoja-build
+```
+
+The binary is written to `dist/goja-dbus-xgoja` and includes `require("dbus")`, the bundled help docs, and example jsverbs:
+
+```bash
+./dist/goja-dbus-xgoja help
+./dist/goja-dbus-xgoja help getting-started
+./dist/goja-dbus-xgoja help user-guide
+./dist/goja-dbus-xgoja help api-reference
+./dist/goja-dbus-xgoja verbs examples typed-values
+./dist/goja-dbus-xgoja verbs examples denied-system-bus
+./dist/goja-dbus-xgoja verbs examples get-id-script
+```
+
+The Makefile targets currently invoke the sibling `../go-go-goja` checkout so local xgoja changes and provider APIs are used consistently.
 
 ## Development
 
