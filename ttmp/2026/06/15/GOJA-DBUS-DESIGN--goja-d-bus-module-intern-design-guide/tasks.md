@@ -51,10 +51,10 @@
 
 ## Phase 5 — Service export design checkpoint
 
-- [ ] Re-read the design doc section on service export and decide whether to use method tables or lower-level godbus handlers.
-- [ ] Add a focused implementation note before coding service export.
-- [ ] Implement the smallest echo-service export if the design checkpoint is clear.
-- [ ] Add opt-in integration test for calling the exported echo service.
+- [x] Re-read the design doc section on service export and decide whether to use method tables or lower-level godbus handlers.
+- [x] Add a focused implementation note before coding service export.
+- [ ] Implement the smallest echo-service export if the design checkpoint is clear. Deferred by `design-doc/02-service-export-checkpoint.md`.
+- [ ] Add opt-in integration test for calling the exported echo service. Deferred with service export.
 - [ ] Commit service export or commit the checkpoint note if implementation is deferred.
 
 ## Phase 6 — Documentation, declarations, and hardening
