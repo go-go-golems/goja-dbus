@@ -55,7 +55,7 @@
 - [x] Add a focused implementation note before coding service export.
 - [ ] Implement the smallest echo-service export if the design checkpoint is clear. Deferred by `design-doc/02-service-export-checkpoint.md`.
 - [ ] Add opt-in integration test for calling the exported echo service. Deferred with service export.
-- [ ] Commit service export or commit the checkpoint note if implementation is deferred.
+- [x] Commit service export or commit the checkpoint note if implementation is deferred (`c5acc52`).
 
 ## Phase 6 — Documentation, declarations, and hardening
 

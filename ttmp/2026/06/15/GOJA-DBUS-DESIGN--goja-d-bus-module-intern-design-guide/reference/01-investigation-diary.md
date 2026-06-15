@@ -559,3 +559,83 @@ gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
 GOWORK=off go test ./... -count=1
 git commit -m "Add D-Bus signal subscription builders"
 ```
+
+## Step 6: Phase 5 Service Export Checkpoint
+
+I paused before implementing JavaScript-backed D-Bus service export and wrote a focused checkpoint note. The checkpoint documents why service export should wait until runtime cleanup and compound signature support are stronger.
+
+This was an intentional scope-control decision. Client calls and signal subscriptions are now implemented, but service export would add the riskiest callback direction: external D-Bus calls would need to synchronously wait for JavaScript handler execution on the Goja owner.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue phase execution, but use the phase plan's checkpoint escape hatch when implementation would be premature.
+
+**Inferred user intent:** Keep progress deliberate and reviewable rather than pushing risky service export code too early.
+
+**Commit (code/docs):** `c5acc524bf2cb3f2d699a574d0ed62000cb07038` — "Docs: add service export checkpoint"
+
+### What I did
+
+- Added `design-doc/02-service-export-checkpoint.md`.
+- Compared service export options:
+  - immediate godbus method-table implementation;
+  - hard-coded echo-service demo;
+  - defer service export until cleanup and codecs are stronger.
+- Chose to defer service export for the current pass.
+- Updated Phase 5 tasks to mark the checkpoint complete and leave echo-service implementation/testing deferred.
+
+### Why
+
+- Service export is the highest-risk runtime boundary because Go/godbus goroutines would need to invoke JavaScript handlers through the runtime owner and return D-Bus replies correctly.
+- The module still lacks automatic runtime-shutdown cleanup for D-Bus resources.
+- The codec currently supports only scalar signatures plus variants; realistic service export needs arrays, structs, dictionaries, and `a{sv}`.
+
+### What worked
+
+- `docmgr doctor --ticket GOJA-DBUS-DESIGN --stale-after 30` passed after adding the checkpoint note.
+- The checkpoint creates an explicit decision record instead of burying the deferral in a diary paragraph.
+
+### What didn't work
+
+- N/A. This phase was documentation and scope control, not code implementation.
+
+### What I learned
+
+- The current implementation has enough client/signal functionality to justify stopping before service export.
+- A small echo-service demo would be tempting, but it could create the wrong abstraction before lifecycle and codec foundations are complete.
+
+### What was tricky to build
+
+- The tricky part was deciding not to build. The implementation plan allowed a checkpoint if service export was not clear, and the current runtime-cleanup gap makes immediate service export a poor next step.
+- The checkpoint had to be technical enough to guide the future implementation rather than merely saying "deferred".
+
+### What warrants a second pair of eyes
+
+- The deferral decision should be reviewed by whoever owns the desired product scope. If a demo is more important than architecture cleanliness, a hard-coded echo-service experiment could be accepted as throwaway work.
+- The future service dispatcher pseudocode should be reviewed before coding.
+
+### What should be done in the future
+
+- Implement runtime-owned resource cleanup.
+- Add compound codecs.
+- Reopen service export after those foundations are in place.
+
+### Code review instructions
+
+- Review `ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/design-doc/02-service-export-checkpoint.md`.
+- Check that the open tasks in Phase 5 accurately reflect the deferral.
+- Validate with:
+  - `docmgr doctor --ticket GOJA-DBUS-DESIGN --stale-after 30`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+docmgr doc add --ticket GOJA-DBUS-DESIGN --doc-type design-doc --title "Service Export Checkpoint"
+docmgr doctor --ticket GOJA-DBUS-DESIGN --stale-after 30
+git commit -m "Docs: add service export checkpoint"
+```

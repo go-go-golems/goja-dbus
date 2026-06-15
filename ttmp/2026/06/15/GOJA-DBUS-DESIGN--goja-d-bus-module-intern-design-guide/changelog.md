@@ -72,3 +72,12 @@ Phase 4: added D-Bus signal match/subscription support and EventEmitter-based Ja
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/signals.go — EventEmitter-based signal delivery
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module.go — Signal TypeScript declaration updates
 
+
+## 2026-06-15
+
+Phase 5: added service export checkpoint and deferred echo-service implementation until runtime cleanup and compound codecs are stronger (commit c5acc524bf2cb3f2d699a574d0ed62000cb07038).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/design-doc/02-service-export-checkpoint.md — Checkpoint decision and future pseudocode
+
