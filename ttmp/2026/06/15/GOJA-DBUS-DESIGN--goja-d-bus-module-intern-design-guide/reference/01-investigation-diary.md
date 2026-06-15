@@ -458,3 +458,104 @@ gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
 GOWORK=off go test ./... -count=1
 git commit -m "Add D-Bus connect and method call builders"
 ```
+
+## Step 5: Phase 4 Signal Subscription Builders
+
+I added the first D-Bus signal subscription path. JavaScript can now call `bus.signals()` after connecting, add match filters, and call `listen(emitter)` with a Go-native `events.EventEmitter`; the Go side installs the D-Bus match rule, receives signals on a channel, and schedules `emitter.emit("signal", payload)` back onto the runtime owner.
+
+This phase completes explicit close handling for subscriptions, but it deliberately leaves one lifecycle follow-up open: automatic subscription cleanup on runtime shutdown without an explicit `bus.close()` or subscription `close()` still needs a runtime-aware registrar or another closer hook design.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue executing implementation phases with commits and a detailed diary, while documenting incomplete lifecycle edges honestly.
+
+**Inferred user intent:** Add signal support incrementally without hiding remaining cleanup work.
+
+**Commit (code):** `a2b3d5c8d07f547046cf409c69d8c0f9ebfdcd36` — "Add D-Bus signal subscription builders"
+
+### What I did
+
+- Added `pkg/dbuscore/signals.go` with:
+  - `SignalMatchRequest`
+  - `SignalPayload`
+  - `SignalSink`
+  - `Subscription`
+  - `Bus.Listen`
+  - `SignalMatchRequest.MatchOptions`
+  - idempotent `Subscription.Close`
+- `Bus.Listen` now pairs:
+  - `Conn.AddMatchSignalContext`
+  - `Conn.Signal(ch)`
+  - `Conn.RemoveSignal(ch)`
+  - `Conn.RemoveMatchSignalContext`
+- Added `pkg/dbusgoja/signals.go` with JavaScript builder methods:
+  - `sender(name)`
+  - `path(path)`
+  - `interface(name)`
+  - `member(name)`
+  - `listen(emitter)`
+- Updated `pkg/dbusgoja/builders.go` so connected bus objects expose `signals()`.
+- Updated TypeScript declarations in `pkg/modules/dbus/module.go` with `SignalBuilder`, `SignalPayload`, and `SignalSubscription`.
+- Added tests for match path validation, empty match options, and close idempotency for an empty subscription.
+- Ran `GOWORK=off go test ./... -count=1` successfully.
+
+### Why
+
+- D-Bus signals are long-lived Go-side events and need the same owner-thread safety discipline as the design guide's connected EventEmitter pattern.
+- Signal subscriptions require explicit close handles because match rules and signal channels otherwise remain registered on the connection.
+
+### What worked
+
+- Always-on tests pass without a real D-Bus daemon.
+- Signal match construction validates object paths before installing match rules.
+- `listen(emitter)` validates that the provided value is a go-go-goja `events.EventEmitter` by using `events.FromValue`.
+- Signal delivery builds the JavaScript payload on the runtime owner before calling `emitter.Emit`.
+
+### What didn't work
+
+- I did not implement automatic cleanup on runtime shutdown in this phase. The module is currently a plain `modules.NativeModule`, whose loader does not receive `RuntimeModuleRegistrationContext.AddCloser`.
+- Because of that, the Phase 4 task was narrowed in `tasks.md`: explicit close support is complete, but runtime-shutdown cleanup remains open.
+
+### What I learned
+
+- It is possible to use the existing `events.EventEmitter` safely without the full `jsevents.Manager` when the module schedules all `EventEmitter.Emit` calls back onto the owner thread.
+- A separate `SignalSink` callback in `dbuscore` keeps the core package free of Goja while still allowing the adapter to own JavaScript delivery.
+
+### What was tricky to build
+
+- `events.EventEmitter` itself is not goroutine-safe. The signal goroutine must not call it directly; it only asks `runtimebridge.RuntimeServices.PostWithCustomContext` to do emission on the owner.
+- The subscription close operation must cancel the goroutine and unregister both the signal channel and D-Bus match rule. Missing either half would leak delivery state.
+- Runtime shutdown cleanup is trickier because it needs a registration-time closer hook, not just a module loader hook.
+
+### What warrants a second pair of eyes
+
+- The EventEmitter validation and retained emitter pointer should be reviewed against go-go-goja's event module invariants.
+- The current implementation reports listener emission errors by emitting `error` on the same emitter; this mirrors Node-style behavior but may need a host-level unhandled-error policy.
+- Runtime shutdown cleanup should be designed before relying on signals in long-running hosts.
+
+### What should be done in the future
+
+- Add runtime closer support, either by adding a runtime-aware registrar for `dbus` or by extending the module integration pattern.
+- Add an opt-in real signal integration test against a known session-bus signal.
+- Add richer signal body decoding once compound D-Bus signatures are implemented.
+
+### Code review instructions
+
+- Start with `pkg/dbuscore/signals.go` for match and close lifecycle.
+- Review `pkg/dbusgoja/signals.go` for owner-thread EventEmitter delivery.
+- Review `pkg/modules/dbus/module.go` for the public TypeScript signal shape.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
+GOWORK=off go test ./... -count=1
+git commit -m "Add D-Bus signal subscription builders"
+```

@@ -42,12 +42,12 @@
 
 ## Phase 4 — Signals and cleanup handles
 
-- [ ] Add D-Bus signal match request types in `dbuscore`.
-- [ ] Add subscription lifecycle with `AddMatchSignalContext`, `Signal`, `RemoveSignal`, and `RemoveMatchSignalContext`.
-- [ ] Expose EventEmitter-based `signals().listen(emitter)` in `dbusgoja`.
-- [ ] Ensure subscription goroutines exit on close and runtime shutdown.
-- [ ] Add unit tests for match option construction and close idempotency where possible.
-- [ ] Commit signal support.
+- [x] Add D-Bus signal match request types in `dbuscore`.
+- [x] Add subscription lifecycle with `AddMatchSignalContext`, `Signal`, `RemoveSignal`, and `RemoveMatchSignalContext`.
+- [x] Expose EventEmitter-based `signals().listen(emitter)` in `dbusgoja`.
+- [ ] Ensure subscription goroutines exit on runtime shutdown without requiring explicit bus/subscription close.
+- [x] Add unit tests for match option construction and close idempotency where possible.
+- [x] Commit signal support (`a2b3d5c`).
 
 ## Phase 5 — Service export design checkpoint
 

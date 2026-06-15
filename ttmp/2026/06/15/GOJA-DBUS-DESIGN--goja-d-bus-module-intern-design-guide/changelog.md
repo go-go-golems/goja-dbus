@@ -61,3 +61,14 @@ Phase 3: added D-Bus connection lifecycle, policy checks, scalar codec, JavaScri
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/builders.go — JavaScript bus and method builders
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module_test.go — Promise denial and opt-in integration tests
 
+
+## 2026-06-15
+
+Phase 4: added D-Bus signal match/subscription support and EventEmitter-based JavaScript listen API (commit a2b3d5c8d07f547046cf409c69d8c0f9ebfdcd36).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/signals.go — Signal match and subscription lifecycle
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/signals.go — EventEmitter-based signal delivery
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module.go — Signal TypeScript declaration updates
+
