@@ -31,14 +31,14 @@
 
 ## Phase 3 — Session bus connect and method calls
 
-- [ ] Add `dbuscore.Bus` connection lifecycle for session/system/address connections.
-- [ ] Add Go-side `Policy` checks for connect and call operations.
-- [ ] Add immutable JavaScript builders for `session().timeout().policy().connect()`.
-- [ ] Add remote call builders for `destination().object().interface().method().in().out().call()`.
-- [ ] Marshal scalar inputs and unmarshal scalar/empty replies.
-- [ ] Add opt-in integration test for `org.freedesktop.DBus.GetId` guarded by `GOJA_DBUS_INTEGRATION=1`.
-- [ ] Run always-on tests and document integration-test command.
-- [ ] Commit connect/call support.
+- [x] Add `dbuscore.Bus` connection lifecycle for session/system/address connections.
+- [x] Add Go-side `Policy` checks for connect and call operations.
+- [x] Add immutable JavaScript builders for `session().timeout().policy().connect()`.
+- [x] Add remote call builders for `destination().object().interface().method().in().out().call()`.
+- [x] Marshal scalar inputs and unmarshal scalar/empty replies.
+- [x] Add opt-in integration test for `org.freedesktop.DBus.GetId` guarded by `GOJA_DBUS_INTEGRATION=1`.
+- [x] Run always-on tests and document integration-test command.
+- [x] Commit connect/call support (`7ffee55`).
 
 ## Phase 4 — Signals and cleanup handles
 

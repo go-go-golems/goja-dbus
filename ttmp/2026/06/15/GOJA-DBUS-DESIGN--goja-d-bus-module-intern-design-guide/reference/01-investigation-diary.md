@@ -357,3 +357,104 @@ gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
 GOWORK=off go test ./... -count=1
 git commit -m "Add dbus native module skeleton"
 ```
+
+## Step 4: Phase 3 Session Bus Connect and Method Call Builders
+
+I added the first Promise-based D-Bus client path. JavaScript can now create bus builders with `dbus.session()`, `dbus.system()`, or `dbus.connect(address)`, apply timeouts and simple policy options, connect asynchronously, and build remote method calls through `destination().object().interface().method().in().out().call()`.
+
+This phase also adds the core connection, policy, and scalar codec layer needed for real method calls. The always-on tests do not require a running D-Bus daemon; the real `org.freedesktop.DBus.GetId` test is present but guarded behind `GOJA_DBUS_INTEGRATION=1`.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue executing the documented phases sequentially, committing implementation milestones and recording validation/failures.
+
+**Inferred user intent:** Incrementally turn the design guide into working code without losing the reasoning trail.
+
+**Commit (code):** `7ffee5514db236c03e5bf034e0fe2e8697589fd7` — "Add D-Bus connect and method call builders"
+
+### What I did
+
+- Added `pkg/dbuscore/bus.go` with `BusKind`, `ConnectOptions`, `Bus`, connection lifecycle, `Close`, and `Call`.
+- Added `pkg/dbuscore/codec.go` with scalar marshaling/unmarshaling for strings, uint32, int32, object paths, signatures, and variants.
+- Expanded `pkg/dbuscore/policy.go` with connect checks, call checks, simple exact/suffix-wildcard pattern matching, and default session-bus-only policy.
+- Added `pkg/dbusgoja/promise.go` to settle asynchronous work back on the runtime owner through `runtimebridge.RuntimeServices`.
+- Added `pkg/dbusgoja/bus_exports.go` for top-level `session`, `system`, and `connect` exports.
+- Added `pkg/dbusgoja/builders.go` for immutable bus, destination, object, interface, and method builders.
+- Added `pkg/dbusgoja/decode.go` to decode JavaScript `DBusTypedValue` objects back into core typed values.
+- Added `pkg/dbusgoja/policy.go` to decode lowerCamel JavaScript policy objects.
+- Updated `pkg/modules/dbus/module.go` docs and TypeScript declarations to include builders.
+- Added always-on tests for codec and policy behavior.
+- Added a Promise rejection test proving `dbus.system().connect()` is denied by default policy without needing a system bus.
+- Added an opt-in integration test for `org.freedesktop.DBus.GetId`, guarded by `GOJA_DBUS_INTEGRATION=1`.
+- Ran `GOWORK=off go test ./... -count=1` successfully.
+
+### Why
+
+- This is the first phase where the module becomes more than helper functions: it now has a D-Bus client API shape that matches the design guide.
+- Policy denial is tested before real bus access so the security boundary is exercised in normal CI.
+- Real D-Bus integration is opt-in to avoid making CI depend on a desktop/session bus.
+
+### What worked
+
+- Always-on tests passed:
+  - `ok github.com/go-go-golems/goja-dbus/pkg/dbuscore`
+  - `ok github.com/go-go-golems/goja-dbus/pkg/modules/dbus`
+- Promise rejection for default-denied system bus access works without contacting a real bus.
+- The code now validates object paths before creating remote object builders.
+
+### What didn't work
+
+- The first Phase 3 test run failed at build time because `Policy` contained a slice and was compared directly to a zero struct:
+  - Error: `invalid operation: policy == (Policy{}) (struct containing []string cannot be compared)`
+  - Fix: added `Policy.IsZero()` and used that in `Connect`.
+- The next test run failed because `module_object.go` imported `dbuscore` but no longer used it after the builder export refactor:
+  - Error: `"github.com/go-go-golems/goja-dbus/pkg/dbuscore" imported and not used`
+  - Fix: removed the unused import.
+- Adding Promise tests required additional imports in `module_test.go` (`encoding/json`, `os`, `time`, and `goja`); the initial compile surfaced these missing imports.
+
+### What I learned
+
+- A default-denied system bus test is a useful no-daemon test case because it exercises the Promise path, policy path, and runtime-owner settlement path.
+- The builder layer should convert JavaScript inputs to plain Go values during the owner-thread `.in(...)` call, before any goroutine starts.
+- Keeping the real bus test opt-in makes Phase 3 safe to run in headless CI while still documenting how to validate against a real D-Bus daemon.
+
+### What was tricky to build
+
+- The Promise helper must create the Promise on the owner call, do blocking work in a goroutine, and then use `PostWithCustomContext` for settlement. This follows go-go-goja's async pattern and avoids touching JavaScript values from the goroutine.
+- The method builder has to copy builder state on each fluent method to preserve immutability. The implementation copies input slices when appending `.in(...)` arguments.
+- The adapter has to decode JavaScript typed helper objects immediately. Retaining arbitrary `goja.Value` values inside a builder that may later execute in a goroutine would violate the runtime-owner rule.
+
+### What warrants a second pair of eyes
+
+- The current `Policy.AllowCall` matcher is intentionally simple. It supports exact matches and suffix `*` prefix matches, but not a complete glob language.
+- Runtime-owned bus cleanup is currently explicit via `bus.close()`; Phase 4 should revisit runtime shutdown closers when subscriptions are added.
+- The codec only supports a scalar subset plus variants. Arrays, structs, and dictionaries remain future work.
+
+### What should be done in the future
+
+- Run `GOJA_DBUS_INTEGRATION=1 GOWORK=off go test ./pkg/modules/dbus -run TestDBusGetIdIntegration -count=1` on a machine with a working session bus.
+- Implement signal subscriptions with close handles.
+- Expand the codec for arrays, dictionaries, and structs before implementing properties and service export.
+
+### Code review instructions
+
+- Start with `pkg/dbusgoja/builders.go` for the JavaScript API flow.
+- Review `pkg/dbusgoja/promise.go` for owner-thread settlement.
+- Review `pkg/dbuscore/bus.go` for D-Bus connection/call behavior and context/timeout handling.
+- Review `pkg/dbuscore/codec.go` for scalar conversion assumptions.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+  - Optional: `GOJA_DBUS_INTEGRATION=1 GOWORK=off go test ./pkg/modules/dbus -run TestDBusGetIdIntegration -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbuscore pkg/dbusgoja pkg/modules/dbus
+GOWORK=off go test ./... -count=1
+git commit -m "Add D-Bus connect and method call builders"
+```

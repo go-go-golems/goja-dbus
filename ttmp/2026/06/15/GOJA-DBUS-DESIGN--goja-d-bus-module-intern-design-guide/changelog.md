@@ -49,3 +49,15 @@ Phase 2: added dbus native module skeleton and typed helper tests (commit 792723
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module.go — NativeModule and TypeScript declaration implementation
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module_test.go — Runtime require integration tests
 
+
+## 2026-06-15
+
+Phase 3: added D-Bus connection lifecycle, policy checks, scalar codec, JavaScript builders, and opt-in GetId integration test (commit 7ffee5514db236c03e5bf034e0fe2e8697589fd7).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/bus.go — Connection lifecycle and method call execution
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/codec.go — Scalar marshaling and unmarshaling
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/builders.go — JavaScript bus and method builders
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/modules/dbus/module_test.go — Promise denial and opt-in integration tests
+
