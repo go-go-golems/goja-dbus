@@ -7,17 +7,17 @@
 - [x] Write the intern-facing design and implementation guide.
 - [x] Upload the guide bundle to reMarkable.
 - [x] Add a phase/task execution plan to this ticket.
-- [ ] Commit the ticket documentation baseline.
+- [x] Commit the ticket documentation baseline (`981ab07`).
 
 ## Phase 1 — Repository normalization
 
-- [ ] Rename module path from `github.com/go-go-golems/XXX` to `github.com/go-go-golems/goja-dbus`.
-- [ ] Rename placeholder command `cmd/XXX` to `cmd/goja-dbus-demo`.
-- [ ] Update template package/logcopter names from `XXX` to `goja-dbus`.
-- [ ] Update Makefile release/install/logcopter paths.
-- [ ] Replace template README with a concise project overview.
-- [ ] Run `gofmt` and `GOWORK=off go test ./...`.
-- [ ] Commit repository normalization.
+- [x] Rename module path from `github.com/go-go-golems/XXX` to `github.com/go-go-golems/goja-dbus`.
+- [x] Rename placeholder command `cmd/XXX` to `cmd/goja-dbus-demo`.
+- [x] Update template package/logcopter names from `XXX` to `goja-dbus`.
+- [x] Update Makefile release/install/logcopter paths.
+- [x] Replace template README with a concise project overview.
+- [x] Run `gofmt` and `GOWORK=off go test ./...`.
+- [x] Commit repository normalization (`1d42a91`).
 
 ## Phase 2 — Native module skeleton and typed scalar helpers
 

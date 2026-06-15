@@ -171,3 +171,93 @@ go doc github.com/godbus/dbus/v5.Object
 go doc github.com/godbus/dbus/v5/prop
 go doc github.com/godbus/dbus/v5/introspect
 ```
+
+## Step 2: Phase 1 Repository Normalization
+
+I normalized the repository so future implementation work no longer carries the template identity. This changed the Go module path, demo command path, release metadata, logcopter area names, and README so the project now consistently presents itself as `goja-dbus`.
+
+This step intentionally did not add the D-Bus module yet. It creates a clean baseline for later commits so module code, tests, and documentation refer to the correct import path and command paths from the start.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create detailed phasesa nd for each phase, tasks, and then execute them one by one, and commit atappropriate intervals, and keep a detailed d iary."
+
+**Assistant interpretation:** Convert the design guide into concrete implementation phases, update ticket tasks, then execute each phase sequentially with focused commits and diary updates.
+
+**Inferred user intent:** Move from planning into implementation while preserving reviewable commits and a detailed continuation trail.
+
+**Commit (code):** `1d42a9151ffba42e35614d297131e09955c8c3ba` — "Normalize goja-dbus repository"
+
+### What I did
+
+- Updated `goja-dbus/go.mod` from `github.com/go-go-golems/XXX` to `github.com/go-go-golems/goja-dbus`.
+- Renamed `cmd/XXX/main.go` to `cmd/goja-dbus-demo/main.go`.
+- Updated `Makefile` paths for logcopter, release module path, install binary name, and build target.
+- Updated `.goreleaser.yaml` project/build/binary/homepage/package metadata from `XXX` to `goja-dbus` / `goja-dbus-demo`.
+- Updated `logcopter_generate.go` and `pkg/logcopter.go` area names.
+- Replaced the template README with a concise project overview and development commands.
+- Ran `gofmt` on changed Go files.
+- Ran `GOWORK=off go mod tidy`.
+- Ran `GOWORK=off go test ./...`.
+- Committed the code changes.
+
+### Why
+
+- The repository was still using a template module path and command name, which would make later package imports and tests misleading.
+- Normalizing the repository before adding the module keeps later diffs focused on actual D-Bus functionality.
+
+### What worked
+
+- `GOWORK=off go test ./...` passed after the rename:
+  - `? github.com/go-go-golems/goja-dbus [no test files]`
+  - `? github.com/go-go-golems/goja-dbus/cmd/goja-dbus-demo [no test files]`
+  - `? github.com/go-go-golems/goja-dbus/pkg [no test files]`
+- Git detected the command rename as a clean rename from `cmd/XXX/main.go` to `cmd/goja-dbus-demo/main.go`.
+
+### What didn't work
+
+- My first staging command tried to add the old path after `git mv`:
+  - Command: `git add .goreleaser.yaml Makefile README.md go.mod logcopter_generate.go pkg/logcopter.go cmd/goja-dbus-demo/main.go cmd/XXX/main.go`
+  - Error: `fatal: pathspec 'cmd/XXX/main.go' did not match any files`
+- I corrected this by staging the `cmd` directory instead:
+  - Command: `git add .goreleaser.yaml Makefile README.md go.mod logcopter_generate.go pkg/logcopter.go cmd`
+
+### What I learned
+
+- The template had placeholder references not only in `go.mod` and README, but also in release, Makefile, and logcopter configuration.
+- `AGENT.md` still contains generic examples using `XXX/YYY/FOOO`, but those are instructional placeholders rather than project identity references, so I left them unchanged.
+
+### What was tricky to build
+
+- The root `logcopter_generate.go` package name could not use the hyphenated module name. I used `package gojadbus` while keeping the module path and logcopter area as `goja-dbus`.
+- The release binary name and module name are intentionally different: the repository/module is `goja-dbus`, while the placeholder executable became `goja-dbus-demo` because the real deliverable is a native module, not primarily a CLI.
+
+### What warrants a second pair of eyes
+
+- The `.goreleaser.yaml` metadata is mechanically normalized but may need product decisions before an actual release.
+- The install target uses `which goja-dbus-demo`; if the binary is not installed yet, that target may still need a better default destination in a future release-readiness pass.
+
+### What should be done in the future
+
+- Add the real module packages under `pkg/dbuscore`, `pkg/dbusgoja`, and `pkg/modules/dbus`.
+- Revisit `.goreleaser.yaml` once the project has a real CLI or decide to remove CLI release packaging if this remains library-only.
+
+### Code review instructions
+
+- Start with `go.mod` to confirm the module path.
+- Review `Makefile`, `.goreleaser.yaml`, and `logcopter_generate.go` for remaining template references.
+- Validate with:
+  - `GOWORK=off go test ./...`
+  - `rg -n 'XXX|go-go-golems/XXX|go-go-golems\.XXX' -S . --glob '!ttmp/**' --glob '!go.sum'`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+git mv cmd/XXX/main.go cmd/goja-dbus-demo/main.go
+GOWORK=off go mod tidy
+GOWORK=off go test ./...
+git commit -m "Normalize goja-dbus repository"
+```
