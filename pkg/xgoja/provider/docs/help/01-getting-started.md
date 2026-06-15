@@ -34,7 +34,7 @@ The target runs the sibling `go-go-goja` checkout's `xgoja` command and writes t
 The default output is:
 
 ```bash
-dist/goja-dbus-xgoja
+dist/goja-dbus
 ```
 
 ## Inspect bundled help
@@ -42,10 +42,10 @@ dist/goja-dbus-xgoja
 Use the help command to confirm the pages are embedded:
 
 ```bash
-./dist/goja-dbus-xgoja help
-./dist/goja-dbus-xgoja help getting-started
-./dist/goja-dbus-xgoja help user-guide
-./dist/goja-dbus-xgoja help api-reference
+./dist/goja-dbus help
+./dist/goja-dbus help getting-started
+./dist/goja-dbus help user-guide
+./dist/goja-dbus help api-reference
 ```
 
 ## Run bundled example verbs
@@ -53,15 +53,15 @@ Use the help command to confirm the pages are embedded:
 The binary includes example jsverbs from the provider source named `examples`. List them first:
 
 ```bash
-./dist/goja-dbus-xgoja verbs list
+./dist/goja-dbus verbs list
 ```
 
 Then run the safe examples:
 
 ```bash
-./dist/goja-dbus-xgoja verbs examples typed-values
-./dist/goja-dbus-xgoja verbs examples denied-system-bus
-./dist/goja-dbus-xgoja verbs examples get-id-script
+./dist/goja-dbus verbs examples typed-values
+./dist/goja-dbus verbs examples denied-system-bus
+./dist/goja-dbus verbs examples get-id-script
 ```
 
 The `typed-values` verb demonstrates D-Bus typed helper objects. The `denied-system-bus` verb intentionally exercises default policy denial and does not require a running D-Bus daemon. The `get-id-script` verb prints a script you can run on a machine with a session bus.
@@ -71,7 +71,7 @@ The `typed-values` verb demonstrates D-Bus typed helper objects. The `denied-sys
 Use `eval` when you want to experiment with the module directly:
 
 ```bash
-./dist/goja-dbus-xgoja eval 'const dbus = require("dbus"); JSON.stringify(dbus.u32(42))'
+./dist/goja-dbus eval 'const dbus = require("dbus"); JSON.stringify(dbus.u32(42))'
 ```
 
 For a real session-bus call, use the script printed by `get-id-script` or write a file and run it with the generated `run` command.

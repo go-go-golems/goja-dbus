@@ -143,16 +143,16 @@ make xgoja-doctor
 make xgoja-build
 ```
 
-The binary is written to `dist/goja-dbus-xgoja` and includes `require("dbus")`, the bundled help docs, and example jsverbs:
+The binary is written to `dist/goja-dbus` and includes `require("dbus")`, the bundled help docs, and example jsverbs:
 
 ```bash
-./dist/goja-dbus-xgoja help
-./dist/goja-dbus-xgoja help getting-started
-./dist/goja-dbus-xgoja help user-guide
-./dist/goja-dbus-xgoja help api-reference
-./dist/goja-dbus-xgoja verbs examples typed-values
-./dist/goja-dbus-xgoja verbs examples denied-system-bus
-./dist/goja-dbus-xgoja verbs examples get-id-script
+./dist/goja-dbus help
+./dist/goja-dbus help getting-started
+./dist/goja-dbus help user-guide
+./dist/goja-dbus help api-reference
+./dist/goja-dbus verbs examples typed-values
+./dist/goja-dbus verbs examples denied-system-bus
+./dist/goja-dbus verbs examples get-id-script
 ```
 
 The Makefile targets currently invoke the sibling `../go-go-goja` checkout so local xgoja changes and provider APIs are used consistently.

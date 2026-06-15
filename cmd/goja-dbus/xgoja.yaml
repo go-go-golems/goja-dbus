@@ -1,9 +1,9 @@
 schema: xgoja/v2
-name: goja-dbus-xgoja
+name: goja-dbus
 app:
-  name: goja-dbus-xgoja
+  name: goja-dbus
 go:
-  module: xgoja.generated/goja-dbus-xgoja
+  module: xgoja.generated/goja-dbus
   version: "1.26"
 workspace:
   mode: auto
@@ -58,11 +58,11 @@ commands:
 artifacts:
   - id: binary
     type: binary
-    output: dist/goja-dbus-xgoja
+    output: dist/goja-dbus
     sources:
       - docs
       - examples
   - id: types
     type: dts
-    output: dist/goja-dbus-xgoja.d.ts
+    output: dist/goja-dbus.d.ts
     strict: true
