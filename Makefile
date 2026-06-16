@@ -1,4 +1,4 @@
-.PHONY: gifs logcopter-generate logcopter-check
+.PHONY: gifs logcopter-generate logcopter-check xgoja-doctor xgoja-build goreleaser-check goreleaser-snapshot
 
 all: gifs
 
@@ -34,11 +34,23 @@ build:
 	GOWORK=off go generate ./...
 	GOWORK=off go build ./...
 
+xgoja-doctor:
+	cd ../go-go-goja && GOWORK=off go run ./cmd/xgoja doctor -f ../goja-dbus/cmd/goja-dbus/xgoja.yaml
+
+xgoja-build:
+	cd ../go-go-goja && GOWORK=off go run ./cmd/xgoja build -f ../goja-dbus/cmd/goja-dbus/xgoja.yaml --output ../goja-dbus/dist/goja-dbus
+
 logcopter-generate:
 	GOWORK=off go generate ./...
 
 logcopter-check:
-	GOWORK=off go tool logcopter-gen -area-prefix go-go-golems.XXX -strip-prefix github.com/go-go-golems/XXX -check ./pkg/...
+	GOWORK=off go tool logcopter-gen -area-prefix go-go-golems.goja-dbus -strip-prefix github.com/go-go-golems/goja-dbus -check ./pkg/...
+
+goreleaser-check:
+	GOWORK=off goreleaser check
+
+goreleaser-snapshot:
+	GOWORK=off goreleaser release --skip=sign --snapshot --clean --single-target
 
 goreleaser:
 	GOWORK=off goreleaser release $(GORELEASER_ARGS) $(GORELEASER_TARGET)
@@ -54,7 +66,7 @@ tag-patch:
 
 release:
 	git push origin --tags
-	GOWORK=off GOPROXY=proxy.golang.org go list -m github.com/go-go-golems/XXX@$(shell svu current)
+	GOWORK=off GOPROXY=proxy.golang.org go list -m github.com/go-go-golems/goja-dbus@$(shell svu current)
 
 bump-go-go-golems:
 	@deps="$$(awk '/^require[[:space:]]+github\.com\/go-go-golems\// { print $$2 } /^[[:space:]]*github\.com\/go-go-golems\// { print $$1 }' go.mod | sort -u)"; \
@@ -67,7 +79,6 @@ bump-go-go-golems:
 	fi
 	GOWORK=off go mod tidy
 
-XXX_BINARY=$(shell which XXX)
-install:
-	GOWORK=off go build -o ./dist/XXX ./cmd/XXX && \
-		cp ./dist/XXX $(XXX_BINARY)
+GOJA_DBUS_BINARY ?= $(shell command -v goja-dbus 2>/dev/null || echo $(HOME)/bin/goja-dbus)
+install: xgoja-build
+	install -D ./dist/goja-dbus $(GOJA_DBUS_BINARY)

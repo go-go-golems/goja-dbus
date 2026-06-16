@@ -1,0 +1,68 @@
+schema: xgoja/v2
+name: goja-dbus
+app:
+  name: goja-dbus
+go:
+  module: xgoja.generated/goja-dbus
+  version: "1.26"
+workspace:
+  mode: auto
+providers:
+  - id: go-go-goja-core
+    import: github.com/go-go-golems/go-go-goja/pkg/xgoja/providers/core
+    register: Register
+    module:
+      replace: ../../../go-go-goja
+  - id: dbus
+    import: github.com/go-go-golems/goja-dbus/pkg/xgoja/provider
+    register: Register
+    module:
+      replace: ../..
+runtime:
+  modules:
+    - provider: dbus
+      name: dbus
+      as: dbus
+    - provider: go-go-goja-core
+      name: events
+      as: events
+    - provider: go-go-goja-core
+      name: timer
+      as: timer
+sources:
+  - id: docs
+    kind: help
+    from:
+      provider:
+        provider: dbus
+        source: docs
+  - id: examples
+    kind: jsverbs
+    from:
+      provider:
+        provider: dbus
+        source: examples
+    language: javascript
+commands:
+  - id: eval
+    type: builtin.eval
+    name: eval
+  - id: run
+    type: builtin.run
+    name: run
+  - id: verbs
+    type: builtin.jsverbs
+    name: verbs
+    sources:
+      - examples
+artifacts:
+  - id: binary
+    type: binary
+    output: dist/goja-dbus
+    sources:
+      - docs
+      - examples
+  - id: types
+    type: dts
+    output: dist/goja-dbus.d.ts
+    strict: true

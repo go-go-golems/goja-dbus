@@ -1,58 +1,183 @@
-# GO GO TEMPLATE
+# goja-dbus
 
-```
- _______  _______    _______  _______ 
-|       ||       |  |       ||       |
-|    ___||   _   |  |    ___||   _   |
-|   | __ |  | |  |  |   | __ |  | |  |
-|   ||  ||  |_|  |  |   ||  ||  |_|  |
-|   |_| ||       |  |   |_| ||       |
-|_______||_______|  |_______||_______|
- _______  _______  __   __  _______  ___      _______  _______  _______ 
-|       ||       ||  |_|  ||       ||   |    |   _   ||       ||       |
-|_     _||    ___||       ||    _  ||   |    |  |_|  ||_     _||    ___|
-  |   |  |   |___ |       ||   |_| ||   |    |       |  |   |  |   |___ 
-  |   |  |    ___||       ||    ___||   |___ |       |  |   |  |    ___|
-  |   |  |   |___ | ||_|| ||   |    |       ||   _   |  |   |  |   |___ 
-  |___|  |_______||_|   |_||___|    |_______||__| |__|  |___|  |_______|
+`goja-dbus` is a native module for [go-go-goja](https://github.com/go-go-golems/go-go-goja) that exposes D-Bus client capabilities to JavaScript through `require("dbus")`.
+
+The implementation goal is strict and boring on the Go side:
+
+- JavaScript describes bus intent, destinations, object paths, interfaces, signatures, handlers, and lifecycle.
+- Go owns D-Bus execution, marshaling, policy enforcement, cleanup, and Goja runtime scheduling.
+- All JavaScript callbacks, `goja.Value` creation, EventEmitter delivery, and Promise settlement happen on the go-go-goja runtime owner.
+
+See the docmgr ticket at `ttmp/2026/06/15/GOJA-DBUS-DESIGN--goja-d-bus-module-intern-design-guide/` for the detailed intern-facing design and implementation guide.
+
+## Current status
+
+Implemented:
+
+- `require("dbus")` native module registration.
+- Typed helpers: `u32`, `i32`, `path`, `signature`, `variant`, `array`, `dict`, and `struct`.
+- Promise-based session/system/address bus builders, with explicit-address connections denied unless policy enables them.
+- Default-denied system bus policy.
+- Remote method-call builders for scalar signatures.
+- EventEmitter-based signal subscription builders.
+- xgoja provider package with bundled `getting-started`, `user-guide`, and `api-reference` Glazed help pages.
+- xgoja-bundled JavaScript example verbs for typed values, policy denial, and a session-bus `GetId` script.
+
+Deferred:
+
+- complete D-Bus signature coverage beyond the current scalar, array, `a{sv}`, and flat-struct subset;
+- JavaScript-backed D-Bus service export.
+
+## JavaScript examples
+
+### Call `org.freedesktop.DBus.GetId`
+
+```js
+const dbus = require("dbus");
+
+const bus = await dbus.session().timeout(2000).connect();
+try {
+  const id = await bus
+    .destination("org.freedesktop.DBus")
+    .object("/org/freedesktop/DBus")
+    .interface("org.freedesktop.DBus")
+    .method("GetId")
+    .out("s")
+    .call();
+
+  console.log("bus id:", id);
+} finally {
+  await bus.close();
+}
 ```
 
----
+### Use explicit typed values
 
+```js
+const dbus = require("dbus");
+
+const count = dbus.u32(42);
+const objectPath = dbus.path("/com/example/App1");
+const options = dbus.variant("s", "hello");
+const actions = dbus.array("as", ["default", "Open"]);
+const hints = dbus.dict("a{sv}", { urgency: dbus.variant("u", dbus.u32(1)) });
+const pair = dbus.struct("(su)", ["count", dbus.u32(7)]);
+
+console.log(count.signature, count.value);      // "u", 42
+console.log(objectPath.signature, objectPath.value);
+console.log(options.signature, options.value.signature);
+console.log(actions.signature, actions.value.length);
+console.log(hints.signature, hints.value.urgency.signature);
+console.log(pair.signature, pair.value[0]);
 ```
- _______  _______    _______  _______ 
-|       ||       |  |       ||       |
-|    ___||   _   |  |    ___||   _   |
-|   | __ |  | |  |  |   | __ |  | |  |
-|   ||  ||  |_|  |  |   ||  ||  |_|  |
-|   |_| ||       |  |   |_| ||       |
-|_______||_______|  |_______||_______|
- _______  _______  ___      _______  __   __  _______ 
-|       ||       ||   |    |       ||  |_|  ||       |
-|    ___||   _   ||   |    |    ___||       ||  _____|
-|   | __ |  | |  ||   |    |   |___ |       || |_____ 
-|   ||  ||  |_|  ||   |___ |    ___||       ||_____  |
-|   |_| ||       ||       ||   |___ | ||_|| | _____| |
-|_______||_______||_______||_______||_|   |_||_______|
- __   __  _______  ___   _  _______    __   __  _______  ______   _______ 
-|  |_|  ||   _   ||   | | ||       |  |  |_|  ||       ||    _ | |       |
-|       ||  |_|  ||   |_| ||    ___|  |       ||   _   ||   | || |    ___|
-|       ||       ||      _||   |___   |       ||  | |  ||   |_|| |   |___ 
-|       ||       ||     |_ |    ___|  |       ||  |_|  ||    __ ||    ___|
-| ||_|| ||   _   ||    _  ||   |___   | ||_|| ||       ||   |  |||   |___ 
-|_|   |_||__| |__||___| |_||_______|  |_|   |_||_______||___|  |||_______|
- _______  _______    _______  _______ 
-|       ||       |  |       ||       |
-|    ___||   _   |  |    ___||   _   |
-|   | __ |  | |  |  |   | __ |  | |  |
-|   ||  ||  |_|  |  |   ||  ||  |_|  |
-|   |_| ||       |  |   |_| ||       |
-|_______||_______|  |_______||_______|
- _______  _______  ___      _______  __   __  _______ 
-|       ||       ||   |    |       ||  |_|  ||       |
-|    ___||   _   ||   |    |    ___||       ||  _____|
-|   | __ |  | |  ||   |    |   |___ |       || |_____ 
-|   ||  ||  |_|  ||   |___ |    ___||       ||_____  |
-|   |_| ||       ||       ||   |___ | ||_|| | _____| |
-|_______||_______||_______||_______||_|   |_||_______|
+
+### Listen for signals with EventEmitter
+
+```js
+const dbus = require("dbus");
+const EventEmitter = require("events");
+
+const bus = await dbus.session().connect();
+const emitter = new EventEmitter();
+
+emitter.on("signal", (signal) => {
+  console.log(signal.sender, signal.path, signal.name, signal.body);
+});
+
+emitter.on("error", (err) => {
+  console.error(err.code, err.message);
+});
+
+const sub = await bus
+  .signals()
+  .interface("org.freedesktop.DBus.Properties")
+  .member("PropertiesChanged")
+  .listen(emitter);
+
+// Later:
+await sub.close();
+await bus.close();
 ```
+
+## Go embedding sketch
+
+External applications must blank-import the module package before creating a go-go-goja runtime so the module registers itself with the default registry.
+
+```go
+package main
+
+import (
+    "context"
+
+    "github.com/go-go-golems/go-go-goja/pkg/engine"
+    _ "github.com/go-go-golems/goja-dbus/pkg/modules/dbus"
+)
+
+func main() {
+    factory, err := engine.NewRuntimeFactoryBuilder().
+        UseModuleMiddleware(engine.MiddlewareOnly("dbus", "events")).
+        Build()
+    if err != nil {
+        panic(err)
+    }
+
+    rt, err := factory.NewRuntime(
+        engine.WithStartupContext(context.Background()),
+        engine.WithLifetimeContext(context.Background()),
+    )
+    if err != nil {
+        panic(err)
+    }
+    defer rt.Close(context.Background())
+
+    // Run JavaScript that calls require("dbus").
+}
+```
+
+## xgoja binary
+
+Build the generated documentation/example host from `cmd/goja-dbus/xgoja.yaml`:
+
+```bash
+make xgoja-doctor
+make xgoja-build
+```
+
+The binary is written to `dist/goja-dbus` and includes `require("dbus")`, the bundled help docs, and example jsverbs:
+
+```bash
+./dist/goja-dbus help
+./dist/goja-dbus help getting-started
+./dist/goja-dbus help user-guide
+./dist/goja-dbus help api-reference
+./dist/goja-dbus verbs examples typed-values
+./dist/goja-dbus verbs examples denied-system-bus
+./dist/goja-dbus verbs examples get-id-script
+```
+
+The Makefile targets currently invoke the sibling `../go-go-goja` checkout so local xgoja changes and provider APIs are used consistently.
+
+## Release packaging
+
+The checked-in `cmd/goja-dbus/main.go` mirrors the xgoja runtime plan so GoReleaser can build the canonical `goja-dbus` CLI without requiring a generated temporary xgoja workspace during release.
+
+```bash
+make goreleaser-check
+make goreleaser-snapshot
+```
+
+The snapshot target builds the current platform target and verifies archives plus Linux package generation (`.deb` and `.rpm`).
+
+## Development
+
+```bash
+GOWORK=off go test ./... -count=1
+GOWORK=off go generate ./...
+```
+
+Run the opt-in real D-Bus integration test on a machine with a working session bus:
+
+```bash
+GOJA_DBUS_INTEGRATION=1 GOWORK=off go test ./pkg/modules/dbus -run TestDBusGetIdIntegration -count=1
+```
+

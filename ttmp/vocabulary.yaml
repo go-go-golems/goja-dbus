@@ -1,0 +1,20 @@
+topics:
+    - slug: goja
+      description: goja topic
+    - slug: dbus
+      description: dbus topic
+    - slug: design
+      description: design topic
+docTypes:
+    - slug: index
+      description: index document type
+    - slug: design-doc
+      description: design-doc document type
+    - slug: reference
+      description: reference document type
+intent:
+    - slug: long-term
+      description: Long-term documentation
+status:
+    - slug: active
+      description: Active ticket or document
