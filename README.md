@@ -173,7 +173,13 @@ The snapshot target builds the current platform target and verifies archives plu
 ```bash
 GOWORK=off go test ./... -count=1
 GOWORK=off go generate ./...
+make logcopter-check
+make glazed-lint
+make docsctl-validate
 ```
+
+The CI baseline follows the go-go-golems infra-tooling rollout playbooks: logcopter generated logger drift is checked before `go generate`, Glazed CLI policy linting runs locally and in CI, and release-tag docs publishing uses the reusable `docsctl` workflow.
+
 
 Run the opt-in real D-Bus integration test on a machine with a working session bus:
 

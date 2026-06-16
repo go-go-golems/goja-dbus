@@ -23,10 +23,13 @@ jobs:
         run: make logcopter-check
       -
         name: Generate assets
-        run: go generate ./...
+        run: GOWORK=off go generate ./...
       -
         name: Verify generated files are up to date
         run: git diff --exit-code
       -
+        name: Validate docsctl help export
+        run: make docsctl-validate
+      -
         name: Run unit tests
-        run: go test ./...
+        run: GOWORK=off go test ./...
