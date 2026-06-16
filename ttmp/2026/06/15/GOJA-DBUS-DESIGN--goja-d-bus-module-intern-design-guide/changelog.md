@@ -155,3 +155,14 @@ Updated the bundled user guide's example commands to use dist/goja-dbus after th
 
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/xgoja/provider/docs/help/02-user-guide.md — updated command examples
 
+
+## 2026-06-16
+
+Removed the placeholder cmd/goja-dbus-demo command and made the generated goja-dbus xgoja CLI the only command identity (commit b492511).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/.goreleaser.yaml — goja-dbus naming
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — install generated goja-dbus binary
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — removed placeholder demo instructions
+

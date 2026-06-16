@@ -10,10 +10,16 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: .goreleaser.yaml
+      Note: renamed release metadata away from demo command
     - Path: Makefile
-      Note: updated xgoja target paths for commit ea0a7a5
+      Note: |-
+        updated xgoja target paths for commit ea0a7a5
+        install now uses generated goja-dbus binary
     - Path: cmd/goja-dbus/xgoja.yaml
-      Note: moved xgoja binary spec for commit ea0a7a5
+      Note: |-
+        moved xgoja binary spec for commit ea0a7a5
+        canonical goja-dbus CLI spec after removing demo command
     - Path: pkg/xgoja/provider/docs/help/01-getting-started.md
       Note: |-
         bundled Glazed help docs for commit 50ad0ab
@@ -35,6 +41,7 @@ LastUpdated: 2026-06-15T17:45:00-04:00
 WhatFor: Resume or review the investigation behind the Goja D-Bus module design guide.
 WhenToUse: When continuing implementation, reviewing evidence, or checking what commands and failures occurred during ticket creation.
 ---
+
 
 
 
@@ -1250,4 +1257,90 @@ make xgoja-build
 ./dist/goja-dbus verbs examples typed-values
 GOWORK=off go test ./... -count=1
 git commit -m "Rename xgoja artifact to goja-dbus"
+```
+
+## Step 13: Remove the Placeholder Demo Command
+
+I removed the old placeholder `cmd/goja-dbus-demo` command so the project now has a single canonical goja-dbus CLI identity. The xgoja spec under `cmd/goja-dbus/xgoja.yaml` is now the command configuration, and `make install` installs the generated `dist/goja-dbus` binary.
+
+This also removes the previous split identity where the repository was `goja-dbus` but the template-era executable was `goja-dbus-demo`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "remove it, all goja-dbus"
+
+**Assistant interpretation:** Remove the remaining placeholder demo command and update build/install/release metadata so the command identity is consistently `goja-dbus`.
+
+**Inferred user intent:** Avoid having both `goja-dbus-demo` and `goja-dbus`; make `goja-dbus` the only user-facing CLI name.
+
+**Commit (code/docs):** `b492511693b2c151b7e1683bee1f3d36c7340da6` — "Remove placeholder goja-dbus demo command"
+
+### What I did
+
+- Deleted `cmd/goja-dbus-demo/main.go`.
+- Updated `Makefile install` to depend on `xgoja-build` and install `dist/goja-dbus`.
+- Updated `.goreleaser.yaml` names/descriptions away from `goja-dbus-demo` toward `goja-dbus`.
+- Removed the README section that ran the placeholder demo command.
+- Updated the design guide package tree to show `cmd/goja-dbus/xgoja.yaml` as the canonical CLI spec.
+- Updated ticket tasks to reflect removal of the placeholder command.
+
+### Why
+
+- The generated xgoja CLI is now the real user-facing binary.
+- Keeping the empty demo command around would confuse users and release tooling.
+
+### What worked
+
+- `make xgoja-doctor` passed.
+- `make xgoja-build` produced `dist/goja-dbus`.
+- `./dist/goja-dbus help getting-started` rendered successfully.
+- `./dist/goja-dbus verbs examples denied-system-bus` ran successfully.
+- `GOWORK=off go test ./... -count=1` passed and no longer lists `cmd/goja-dbus-demo`.
+
+### What didn't work
+
+- N/A. The deletion and references update validated cleanly.
+
+### What I learned
+
+- Once the xgoja-generated binary became `goja-dbus`, the empty demo command no longer served a useful purpose.
+- The install target should install the generated binary rather than compiling a placeholder Go command.
+
+### What was tricky to build
+
+- The main subtlety is release packaging: `.goreleaser.yaml` no longer names `goja-dbus-demo`, but xgoja-generated release packaging still needs a dedicated follow-up because the command is generated from `cmd/goja-dbus/xgoja.yaml` rather than a checked-in `main.go` package.
+
+### What warrants a second pair of eyes
+
+- Review `.goreleaser.yaml` before the next release. It now uses `goja-dbus` naming, but the generated xgoja binary release flow may need a proper GoReleaser `dir`/generated-module setup.
+
+### What should be done in the future
+
+- Design the release pipeline for the generated xgoja host explicitly instead of relying on the old template GoReleaser build configuration.
+
+### Code review instructions
+
+- Review the removal of `cmd/goja-dbus-demo/main.go`.
+- Review `Makefile install` to confirm it installs `dist/goja-dbus`.
+- Review `.goreleaser.yaml` for remaining release-readiness work.
+- Validate with:
+  - `make xgoja-doctor`
+  - `make xgoja-build`
+  - `./dist/goja-dbus help getting-started`
+  - `./dist/goja-dbus verbs examples denied-system-bus`
+  - `GOWORK=off go test ./... -count=1`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+git rm -r cmd/goja-dbus-demo
+make xgoja-doctor
+make xgoja-build
+./dist/goja-dbus help getting-started
+./dist/goja-dbus verbs examples denied-system-bus
+GOWORK=off go test ./... -count=1
+git commit -m "Remove placeholder goja-dbus demo command"
 ```
