@@ -188,3 +188,12 @@ Addressed PR #1 review findings: explicit D-Bus addresses are denied by default,
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/policy.go — policy semantics
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/policy.go — policy decoding
 
+
+## 2026-06-16
+
+Fixed gosec G118 in runtime cleanup by replacing context.Background cleanup with a bounded context derived via context.WithoutCancel(lifetime) (commit 255c2e7).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/resources.go — gosec G118 fix
+

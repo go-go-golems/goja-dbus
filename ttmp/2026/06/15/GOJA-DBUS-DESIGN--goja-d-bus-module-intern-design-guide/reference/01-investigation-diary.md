@@ -1579,3 +1579,90 @@ make goreleaser-check
 GOWORK=off goreleaser build --snapshot --clean --single-target
 git commit -m "Harden DBus policy defaults"
 ```
+
+## Step 16: Fix Gosec G118 in Runtime Cleanup
+
+I fixed the CI gosec finding for `pkg/dbusgoja/resources.go`. The cleanup goroutine no longer calls `registry.closeAll(context.Background())` after runtime lifetime cancellation; it now derives a bounded cleanup context from `context.WithoutCancel(lifetime)`.
+
+This keeps cleanup tied to the runtime lifetime's context values without passing an already-canceled context into D-Bus close operations.
+
+### Prompt Context
+
+**User prompt (verbatim):** "] 2026/06/16 21:03:16 Checking file: /home/runner/work/goja-dbus/goja-dbus/pkg/xgoja/provider/provider.go
+[gosec] 2026/06/16 21:03:16 Checking package: main
+[gosec] 2026/06/16 21:03:16 Checking file: /home/runner/work/goja-dbus/goja-dbus/cmd/goja-dbus/main.go
+Results:
+
+
+[/home/runner/work/goja-dbus/goja-dbus/pkg/dbusgoja/resources.go:22] - G118 (CWE-400): Goroutine uses context.Background/TODO while request-scoped context is available (Confidence: MEDIUM, Severity: HIGH)
+    21:     registry := &resourceRegistry{buses: map[*dbuscore.Bus]struct{}{}}
+  > 22:     go func() {
+    23:         <-lifetime.Done()
+
+Autofix:"
+
+**Assistant interpretation:** Fix the reported gosec G118 issue in the resource cleanup goroutine and validate locally.
+
+**Inferred user intent:** Clear the failing CI security scan on PR #1.
+
+**Commit (code):** `255c2e797e46d641d52e1477fb7d4891c61fb45e` — "Avoid background context in DBus cleanup goroutine"
+
+### What I did
+
+- Updated `newResourceRegistry` so a nil lifetime returns an inert registry instead of installing a goroutine on `context.Background()`.
+- Changed the lifetime cleanup goroutine to create `cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(lifetime), 5*time.Second)` before calling `registry.closeAll(cleanupCtx)`.
+- Ran gofmt, tests, lint, and targeted gosec validation.
+
+### Why
+
+- Gosec G118 flags goroutines that ignore an available request/lifetime context and use `context.Background()` or `context.TODO()` instead.
+- Passing `lifetime` itself into close after `<-lifetime.Done()` would make the close context already canceled, so `context.WithoutCancel(lifetime)` preserves values while allowing bounded cleanup work.
+
+### What worked
+
+- `GOWORK=off go test ./... -count=1` passed.
+- Pre-commit `GOWORK=off go test ./...` passed.
+- Pre-commit `GOWORK=off golangci-lint run -v` passed.
+- `GOWORK=off gosec ./pkg/dbusgoja` reported zero issues.
+
+### What didn't work
+
+- Running `gosec ./pkg/dbusgoja` without `GOWORK=off` failed because the workspace metadata is currently incompatible with the module/toolchain version:
+  - `go: module . listed in go.work file requires go >= 1.26.3, but go.work lists go 1.26.1; to update it: go work use`
+- Fix: reran the security scan as CI does for this repo's module mode: `GOWORK=off gosec ./pkg/dbusgoja`.
+
+### What I learned
+
+- Cleanup after a context is canceled needs a separate bounded context if the cleanup operation itself may need time to run.
+- `context.WithoutCancel` is a good fit when cleanup should inherit values but not cancellation.
+
+### What was tricky to build
+
+- The cleanup goroutine waits for `lifetime.Done()`, so reusing `lifetime` directly for `closeAll` would be too strict. The bounded `WithoutCancel` context avoids both G118 and immediate cancellation.
+
+### What warrants a second pair of eyes
+
+- Review whether the 5-second cleanup timeout is the right bound for D-Bus close and match-rule cleanup.
+
+### What should be done in the future
+
+- Consider making cleanup timeout configurable if hosts need stricter shutdown budgets.
+
+### Code review instructions
+
+- Review `pkg/dbusgoja/resources.go`, especially `newResourceRegistry`.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+  - `GOWORK=off gosec ./pkg/dbusgoja`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gofmt -w pkg/dbusgoja/resources.go
+GOWORK=off go test ./... -count=1
+GOWORK=off gosec ./pkg/dbusgoja
+git commit -m "Avoid background context in DBus cleanup goroutine"
+```
