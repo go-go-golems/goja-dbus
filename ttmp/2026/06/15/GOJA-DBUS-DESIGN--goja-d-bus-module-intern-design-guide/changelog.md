@@ -177,3 +177,14 @@ Wired GoReleaser packaging to the canonical goja-dbus CLI, added a checked-in xg
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — snapshot workflow docs
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus/main.go — release entrypoint
 
+
+## 2026-06-16
+
+Addressed PR #1 review findings: explicit D-Bus addresses are denied by default, explicit empty allowCall denies all calls, and go.mod no longer has a local go-go-goja replace (commit 2078db8).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/go.mod — no local replace
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbuscore/policy.go — policy semantics
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/policy.go — policy decoding
+

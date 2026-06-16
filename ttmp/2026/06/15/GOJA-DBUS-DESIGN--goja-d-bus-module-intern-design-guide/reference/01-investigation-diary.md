@@ -25,6 +25,12 @@ RelatedFiles:
       Note: |-
         moved xgoja binary spec for commit ea0a7a5
         canonical goja-dbus CLI spec after removing demo command
+    - Path: pkg/dbuscore/policy.go
+      Note: 'PR #1 policy hardening'
+    - Path: pkg/dbusgoja/policy.go
+      Note: JavaScript policy decoding fixes
+    - Path: pkg/modules/dbus/module_test.go
+      Note: regression coverage for explicit address denial
     - Path: pkg/xgoja/provider/docs/help/01-getting-started.md
       Note: |-
         bundled Glazed help docs for commit 50ad0ab
@@ -46,6 +52,7 @@ LastUpdated: 2026-06-15T17:45:00-04:00
 WhatFor: Resume or review the investigation behind the Goja D-Bus module design guide.
 WhenToUse: When continuing implementation, reviewing evidence, or checking what commands and failures occurred during ticket creation.
 ---
+
 
 
 
@@ -1462,4 +1469,113 @@ GOWORK=off goreleaser release --skip=sign --snapshot --clean --single-target
 ./dist/linux_amd64/goja-dbus-linux_linux_amd64_v1/goja-dbus verbs examples denied-system-bus
 git commit -m "Wire GoReleaser to goja-dbus CLI"
 git commit -m "Document GoReleaser snapshot workflow"
+```
+
+## Step 15: Address PR #1 Policy and Release Review Findings
+
+I addressed the automated review findings on PR #1. The main code changes harden the policy boundary: explicit D-Bus addresses are no longer allowed by the default session-bus policy, and an explicitly empty JavaScript `allowCall: []` policy now means deny-all rather than falling back to unrestricted calls.
+
+The committed local `replace github.com/go-go-golems/go-go-goja => ../go-go-goja` issue had already been resolved before this step; I verified the current `go.mod` has no local replace and that the `GOWORK=off` validation path still works.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Address code review issues: https://github.com/go-go-golems/goja-dbus/pull/1"
+
+**Assistant interpretation:** Inspect PR #1 review comments, implement the requested fixes, validate locally, and leave the branch ready for another review pass.
+
+**Inferred user intent:** Resolve the blocking automated review comments so the PR can proceed.
+
+**Commit (code):** `2078db801d11f9fa6e32e535eed0ac59117efedd` — "Harden DBus policy defaults"
+
+### What I did
+
+- Fetched PR #1 review comments with `gh pr view` and `gh api repos/go-go-golems/goja-dbus/pulls/1/comments`.
+- Added `Policy.AllowAddressBus` so explicit-address connections require their own opt-in instead of piggybacking on session/system permissions.
+- Updated `DefaultPolicy()` so it still allows session-bus connections and wildcard method calls, but does not allow explicit-address connections.
+- Added `Policy.AllowCallSet` so an explicitly provided empty `allowCall: []` list is distinguishable from an omitted allow-call policy.
+- Updated JavaScript policy decoding to set `AllowCallSet` when `allowCall` is present and to decode `allowAddressBus`.
+- Hardened `decodePolicy` against nil values returned by `Object.Get`.
+- Updated TypeScript declarations and API docs for `allowAddressBus` and explicit empty `allowCall` semantics.
+- Added tests for:
+  - default denial of explicit-address connections;
+  - explicit opt-in for address connections;
+  - explicit empty allow-call deny-all behavior in core policy;
+  - JavaScript policy decoding for `allowCall: []` and `allowAddressBus`;
+  - JavaScript `dbus.connect("unix:path=/run/dbus/system_bus_socket").connect()` denial by default.
+
+### Why
+
+- Without a separate address policy, callers could use `dbus.connect("unix:path=/run/dbus/system_bus_socket")` to bypass the default system-bus denial.
+- Without an explicit allow-call presence bit, JavaScript callers who tried to narrow a policy with `allowCall: []` accidentally got unrestricted method calls.
+- Removing local module replacements is necessary for clean CI, downstream checkouts, GoReleaser, and `go install` style builds.
+
+### What worked
+
+- `GOWORK=off go test ./... -count=1` passed.
+- The pre-commit hook also ran `GOWORK=off go test ./...` and `GOWORK=off golangci-lint run -v`; both passed.
+- `make xgoja-doctor` passed.
+- `make xgoja-build` produced `dist/goja-dbus`.
+- `./dist/goja-dbus verbs examples denied-system-bus` ran successfully.
+- `make goreleaser-check` passed.
+- `GOWORK=off goreleaser build --snapshot --clean --single-target` passed.
+- `go.mod` currently has no local `replace` directive for `go-go-goja`.
+
+### What didn't work
+
+- The first new `dbusgoja` policy decoder test panicked:
+  - `panic: runtime error: invalid memory address or nil pointer dereference`
+  - Location: `pkg/dbusgoja/policy.go:17`
+- Root cause: `obj.Get("allowSystemBus")` can return nil in this Goja version/path, and the decoder passed that nil value into `goja.IsUndefined` / `goja.IsNull` checks.
+- Fix: added `isPolicyValueSet(value goja.Value) bool`, which checks `value != nil` before testing undefined/null.
+
+### What I learned
+
+- Policy structs need to preserve the difference between omitted fields and explicitly empty fields when JavaScript can use them to narrow permissions.
+- Treating arbitrary D-Bus addresses as equivalent to session/system bus permissions is too permissive; address connections are a distinct capability.
+- The Goja adapter should consistently nil-check object properties before calling methods on `goja.Value`.
+
+### What was tricky to build
+
+- The tricky part was maintaining the current default wildcard call policy while making explicit `allowCall: []` deny all calls. A plain `[]string` cannot represent that distinction, so `AllowCallSet` records whether the field was intentionally supplied.
+- Explicit-address policy is conservative: it does not try to classify raw addresses as session or system bus addresses. Instead, it requires `allowAddressBus: true` before any direct address connection can proceed.
+
+### What warrants a second pair of eyes
+
+- Review whether `allowAddressBus` is the desired long-term host policy shape or whether future hosts should classify addresses more precisely.
+- Review whether `AllowCallSet` should remain exported or become internal if a future policy builder API replaces direct struct construction.
+- Review docs so users understand that omitted `allowCall` inherits the existing call policy while explicit `allowCall: []` denies all method calls.
+
+### What should be done in the future
+
+- Add host-level maximum policy intersection before untrusted JavaScript can widen permissions.
+- Consider subcodes such as `ERR_DBUS_POLICY` so policy denials can be distinguished from transport errors.
+
+### Code review instructions
+
+- Start with `pkg/dbuscore/policy.go` and `pkg/dbuscore/policy_test.go` for the policy semantics.
+- Review `pkg/dbusgoja/policy.go` and `pkg/dbusgoja/policy_test.go` for JavaScript decoding behavior.
+- Review `pkg/modules/dbus/module_test.go` for the default explicit-address denial regression test.
+- Review `pkg/modules/dbus/module.go` and `pkg/xgoja/provider/docs/help/03-api-reference.md` for public API docs.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+  - `make xgoja-doctor`
+  - `make xgoja-build`
+  - `make goreleaser-check`
+  - `GOWORK=off goreleaser build --snapshot --clean --single-target`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+gh pr view 1 --json title,body,comments,reviews,latestReviews,files,url
+gh api repos/go-go-golems/goja-dbus/pulls/1/comments --paginate
+GOWORK=off go test ./... -count=1
+make xgoja-doctor
+make xgoja-build
+./dist/goja-dbus verbs examples denied-system-bus
+make goreleaser-check
+GOWORK=off goreleaser build --snapshot --clean --single-target
+git commit -m "Harden DBus policy defaults"
 ```
