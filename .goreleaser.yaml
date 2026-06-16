@@ -17,8 +17,8 @@ builds:
       - CXX_linux_arm64=aarch64-linux-gnu-g++
       - 'CC={{ index .Env (print "CC_" .Os "_" .Arch) }}'
       - 'CXX={{ index .Env (print "CXX_" .Os "_" .Arch) }}'
-    main: ./cmd/goja-dbus-demo
-    binary: goja-dbus-demo
+    main: ./cmd/goja-dbus
+    binary: goja-dbus
     goos:
       - linux
 # I am not able to test windows at the time
@@ -29,8 +29,8 @@ builds:
   - id: goja-dbus-darwin
     env:
       - CGO_ENABLED=1
-    main: ./cmd/goja-dbus-demo
-    binary: goja-dbus-demo
+    main: ./cmd/goja-dbus
+    binary: goja-dbus
     goos:
       - darwin
     goarch:
@@ -54,7 +54,7 @@ signs:
 
 brews:
   - name: goja-dbus
-    description: "goja-dbus is a go-go-goja native D-Bus module and demo tool"
+    description: "goja-dbus is a go-go-goja native D-Bus module and xgoja CLI"
     homepage: "https://github.com/go-go-golems/goja-dbus"
     repository:
       owner: go-go-golems
@@ -70,7 +70,7 @@ nfpms:
     maintainer: Manuel Odendahl <wesen@ruinwesen.com>
 
     description: |-
-      goja-dbus is a go-go-goja native D-Bus module and demo tool
+      goja-dbus is a go-go-goja native D-Bus module and xgoja CLI
 
     license: MIT
 

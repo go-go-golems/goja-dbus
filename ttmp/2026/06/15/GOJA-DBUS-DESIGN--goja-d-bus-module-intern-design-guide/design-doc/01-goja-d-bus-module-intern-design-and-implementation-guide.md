@@ -412,8 +412,8 @@ goja-dbus/
       dbus/
         module.go             # NativeModule impl + init() registration only
   cmd/
-    goja-dbus-demo/
-      main.go                 # optional example runtime/demo CLI
+    goja-dbus/
+      xgoja.yaml              # canonical generated goja-dbus CLI spec
   examples/
     get-id.js
     notify.js

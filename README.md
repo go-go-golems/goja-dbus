@@ -170,8 +170,3 @@ Run the opt-in real D-Bus integration test on a machine with a working session b
 GOJA_DBUS_INTEGRATION=1 GOWORK=off go test ./pkg/modules/dbus -run TestDBusGetIdIntegration -count=1
 ```
 
-Run the placeholder demo command:
-
-```bash
-go run ./cmd/goja-dbus-demo
-```

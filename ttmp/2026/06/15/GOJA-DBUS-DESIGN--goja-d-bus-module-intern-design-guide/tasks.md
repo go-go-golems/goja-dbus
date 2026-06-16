@@ -12,7 +12,7 @@
 ## Phase 1 — Repository normalization
 
 - [x] Rename module path from `github.com/go-go-golems/XXX` to `github.com/go-go-golems/goja-dbus`.
-- [x] Rename placeholder command `cmd/XXX` to `cmd/goja-dbus-demo`.
+- [x] Remove the placeholder demo command and make `cmd/goja-dbus/xgoja.yaml` the canonical CLI spec.
 - [x] Update template package/logcopter names from `XXX` to `goja-dbus`.
 - [x] Update Makefile release/install/logcopter paths.
 - [x] Replace template README with a concise project overview.

@@ -73,7 +73,6 @@ bump-go-go-golems:
 	fi
 	GOWORK=off go mod tidy
 
-GOJA_DBUS_DEMO_BINARY=$(shell which goja-dbus-demo)
-install:
-	GOWORK=off go build -o ./dist/goja-dbus-demo ./cmd/goja-dbus-demo && \
-		cp ./dist/goja-dbus-demo $(GOJA_DBUS_DEMO_BINARY)
+GOJA_DBUS_BINARY ?= $(shell command -v goja-dbus 2>/dev/null || echo $(HOME)/bin/goja-dbus)
+install: xgoja-build
+	install -D ./dist/goja-dbus $(GOJA_DBUS_BINARY)
