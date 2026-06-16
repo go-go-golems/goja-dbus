@@ -197,3 +197,14 @@ Fixed gosec G118 in runtime cleanup by replacing context.Background cleanup with
 
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/pkg/dbusgoja/resources.go — gosec G118 fix
 
+
+## 2026-06-16
+
+Aligned goja-dbus with infra-tooling: added Glazed CLI policy linting, docsctl export/publish workflow, and broader logcopter checks (commit a027fd8).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/.github/workflows/publish-docs.yaml — docsctl publish workflow
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/.github/workflows/push.yml — logcopter docsctl and test CI ordering
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — glazed-lint docsctl and logcopter targets
+

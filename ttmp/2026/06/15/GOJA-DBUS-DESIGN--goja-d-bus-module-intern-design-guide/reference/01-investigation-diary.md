@@ -1666,3 +1666,117 @@ GOWORK=off go test ./... -count=1
 GOWORK=off gosec ./pkg/dbusgoja
 git commit -m "Avoid background context in DBus cleanup goroutine"
 ```
+
+## Step 17: Align Glazed Lint, docsctl, and Logcopter Infra
+
+I checked the repository against the infra-tooling playbooks for Glazed linting, docsctl publishing, and logcopter rollout. The repository had partial coverage: logcopter existed for `pkg/...`, but Glazed policy linting was not wired into Makefile/CI, docsctl publishing was only a disabled `XXX` template in the release workflow, and local docs export did not have a standard validation target.
+
+I updated the repo to the standard shape: local and CI lint now run `glazed-lint`, docs help export is validated through `docsctl`, docs publishing uses a dedicated tag-triggered workflow, and logcopter drift checks include both `pkg/...` and `cmd/...` patterns.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Do we have the proper glazed-lint and docsctl and logcopter setup? See ~/code/wesen/go-go-golems/infra-tooling/ ?"
+
+**Assistant interpretation:** Compare the repository's infra plumbing against the go-go-golems infra-tooling playbooks and bring it into compliance where it is incomplete.
+
+**Inferred user intent:** Ensure PR #1 is release-train-ready and uses the standard go-go-golems lint/docs/logging infrastructure rather than only ad hoc checks.
+
+**Commit (code/docs):** `a027fd8e33712c2795122a54e2041389843b675f` — "Align infra lint docs and logcopter setup"
+
+### What I did
+
+- Read infra-tooling playbooks for:
+  - Glazed CLI policy linting;
+  - docsctl docs publishing;
+  - logcopter rollout.
+- Added Makefile variables and targets for:
+  - `glazed-lint-build`;
+  - `glazed-lint`;
+  - `docsctl-install`;
+  - `docsctl-export`;
+  - `docsctl-validate`.
+- Changed `make lint` and `make lintmax` to run Glazed CLI policy linting before `golangci-lint`.
+- Added a Glazed policy lint step to `.github/workflows/lint.yml`.
+- Added `.github/workflows/publish-docs.yaml` using the reusable `go-go-golems/infra-tooling/.github/workflows/publish-docsctl.yml@main` workflow.
+- Removed the disabled `XXX` docsctl template from `release.yaml` and kept release permissions narrower.
+- Updated `.github/workflows/push.yml` so CI:
+  - checks logcopter drift first;
+  - runs `GOWORK=off go generate ./...`;
+  - verifies generated files are up to date;
+  - validates docsctl export;
+  - runs `GOWORK=off go test ./...`.
+- Updated `logcopter_generate.go` and `make logcopter-check` to include `./cmd/...` as well as `./pkg/...`.
+- Added `.docsctl/` to `.gitignore`.
+- Documented the standard local checks in README.
+
+### Why
+
+- The Glazed lint rollout playbook expects a `make glazed-lint` target and CI coverage for repositories that expose Glazed CLI commands.
+- The docsctl rollout playbook expects a real package-specific docs workflow, not a disabled template with `XXX` placeholders.
+- The logcopter rollout playbook expects a non-mutating drift check before `go generate`, and command packages should be included when they are part of the released CLI surface.
+
+### What worked
+
+- `make logcopter-check` passed.
+- `make glazed-lint` passed.
+- `make docsctl-validate` exported `.docsctl/help.sqlite` and validated it successfully:
+  - `OK: ... help.sqlite is a valid Glazed help database for goja-dbus@v0.0.0-local (5 sections, 5 slugs)`.
+- `GOWORK=off go test ./... -count=1` passed.
+- `make goreleaser-check` passed.
+- `ggg release preflight --repo . --output json` returned `"ok": true` with no findings.
+- The pre-commit hook ran `make test` and the updated `make lint`; both passed.
+
+### What didn't work
+
+- Before the cleanup, `ggg release preflight --repo . --output json` reported a warning:
+  - `oidc_not_job_scoped`
+  - The release workflow still contained disabled docsctl template comments/placeholders that looked like workflow-level OIDC wiring.
+- Fix: moved docs publishing into `.github/workflows/publish-docs.yaml` with job-scoped `id-token: write`, and removed the disabled template from `release.yaml`.
+
+### What I learned
+
+- The repository had working logcopter generation and checks, but not the full infra-tooling baseline for Glazed CLI policy linting and docs publishing.
+- The goja-dbus xgoja CLI already supports `help export --format sqlite`, so docsctl rollout is straightforward once the reusable workflow and local validation target are wired.
+
+### What was tricky to build
+
+- The docsctl workflow should not be embedded as a disabled release template because it leaves stale placeholders and can confuse readiness tooling. A separate tag-triggered workflow matches the infra-tooling template and keeps OIDC scoped to the publish job.
+- `glazed-lint` should be installed from the same Glazed module version in the repo's module graph, so the Makefile resolves `GLAZED_VERSION` with `GOWORK=off go list -m`.
+
+### What warrants a second pair of eyes
+
+- Confirm the Vault roles `docsctl-goja-dbus-publisher` and token role of the same name exist before the first release tag that should publish docs.
+- Review whether docs publishing should be independent of release artifacts or should depend on GoReleaser success. The current setup follows the separate tag-triggered workflow pattern from infra-tooling.
+
+### What should be done in the future
+
+- Add/verify the Terraform/Vault configuration for `docsctl-goja-dbus-publisher` before tagging a release.
+- Watch the first tag-triggered docs workflow and verify `https://docs.yolo.scapegoat.dev/api/packages` includes `goja-dbus` after publish.
+
+### Code review instructions
+
+- Review `Makefile` for `glazed-lint`, `docsctl-*`, and `logcopter-check` targets.
+- Review `.github/workflows/lint.yml`, `.github/workflows/push.yml`, and `.github/workflows/publish-docs.yaml` for CI/release-train behavior.
+- Review `logcopter_generate.go` for package pattern coverage.
+- Validate with:
+  - `make logcopter-check`
+  - `make glazed-lint`
+  - `make docsctl-validate`
+  - `GOWORK=off go test ./... -count=1`
+  - `make goreleaser-check`
+  - `ggg release preflight --repo . --output json`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+make logcopter-check
+make glazed-lint
+make docsctl-validate
+GOWORK=off go test ./... -count=1
+make goreleaser-check
+ggg release preflight --repo . --output json
+git commit -m "Align infra lint docs and logcopter setup"
+```
