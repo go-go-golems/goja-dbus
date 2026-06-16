@@ -1,4 +1,4 @@
-.PHONY: gifs logcopter-generate logcopter-check xgoja-doctor xgoja-build
+.PHONY: gifs logcopter-generate logcopter-check xgoja-doctor xgoja-build goreleaser-check goreleaser-snapshot
 
 all: gifs
 
@@ -45,6 +45,12 @@ logcopter-generate:
 
 logcopter-check:
 	GOWORK=off go tool logcopter-gen -area-prefix go-go-golems.goja-dbus -strip-prefix github.com/go-go-golems/goja-dbus -check ./pkg/...
+
+goreleaser-check:
+	GOWORK=off goreleaser check
+
+goreleaser-snapshot:
+	GOWORK=off goreleaser release --skip=sign --snapshot --clean --single-target
 
 goreleaser:
 	GOWORK=off goreleaser release $(GORELEASER_ARGS) $(GORELEASER_TARGET)

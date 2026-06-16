@@ -157,6 +157,17 @@ The binary is written to `dist/goja-dbus` and includes `require("dbus")`, the bu
 
 The Makefile targets currently invoke the sibling `../go-go-goja` checkout so local xgoja changes and provider APIs are used consistently.
 
+## Release packaging
+
+The checked-in `cmd/goja-dbus/main.go` mirrors the xgoja runtime plan so GoReleaser can build the canonical `goja-dbus` CLI without requiring a generated temporary xgoja workspace during release.
+
+```bash
+make goreleaser-check
+make goreleaser-snapshot
+```
+
+The snapshot target builds the current platform target and verifies archives plus Linux package generation (`.deb` and `.rpm`).
+
 ## Development
 
 ```bash
