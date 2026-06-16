@@ -166,3 +166,14 @@ Removed the placeholder cmd/goja-dbus-demo command and made the generated goja-d
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/Makefile — install generated goja-dbus binary
 - /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — removed placeholder demo instructions
 
+
+## 2026-06-16
+
+Wired GoReleaser packaging to the canonical goja-dbus CLI, added a checked-in xgoja host, and validated snapshot archive/deb/rpm output (commits 8b2b6e6, 97639af).
+
+### Related Files
+
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/.goreleaser.yaml — release packaging
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/README.md — snapshot workflow docs
+- /home/manuel/workspaces/2026-06-15/goja-dbus/goja-dbus/cmd/goja-dbus/main.go — release entrypoint
+

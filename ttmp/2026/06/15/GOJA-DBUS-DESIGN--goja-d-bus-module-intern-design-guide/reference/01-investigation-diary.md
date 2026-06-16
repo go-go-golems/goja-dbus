@@ -11,11 +11,16 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: .goreleaser.yaml
-      Note: renamed release metadata away from demo command
+      Note: |-
+        renamed release metadata away from demo command
+        release packaging for goja-dbus CLI
     - Path: Makefile
       Note: |-
         updated xgoja target paths for commit ea0a7a5
         install now uses generated goja-dbus binary
+        goreleaser check and snapshot helpers
+    - Path: cmd/goja-dbus/main.go
+      Note: checked-in GoReleaser entrypoint for goja-dbus CLI
     - Path: cmd/goja-dbus/xgoja.yaml
       Note: |-
         moved xgoja binary spec for commit ea0a7a5
@@ -41,6 +46,7 @@ LastUpdated: 2026-06-15T17:45:00-04:00
 WhatFor: Resume or review the investigation behind the Goja D-Bus module design guide.
 WhenToUse: When continuing implementation, reviewing evidence, or checking what commands and failures occurred during ticket creation.
 ---
+
 
 
 
@@ -1343,4 +1349,117 @@ make xgoja-build
 ./dist/goja-dbus verbs examples denied-system-bus
 GOWORK=off go test ./... -count=1
 git commit -m "Remove placeholder goja-dbus demo command"
+```
+
+## Step 14: Wire Release Packaging Around the `goja-dbus` CLI
+
+I wired release packaging to the canonical `goja-dbus` CLI by adding a checked-in `cmd/goja-dbus/main.go` host that mirrors the xgoja runtime plan. GoReleaser can now build a normal Go main package, while the xgoja spec remains available for generated-host validation and local xgoja builds.
+
+This resolves the release gap left after removing the placeholder demo command: release tooling no longer points at an empty or missing `cmd/goja-dbus-demo`; it points at the real `goja-dbus` command.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Continue with the previously identified next step: wire release packaging around the generated/canonical `goja-dbus` binary.
+
+**Inferred user intent:** Make release packaging work for `goja-dbus` rather than just documenting that it still needs review.
+
+**Commit (code):** `8b2b6e68296b9b1eb4595f065f6283b56cb8023c` — "Wire GoReleaser to goja-dbus CLI"
+
+**Commit (docs):** `97639afc17ec08fb013b63d0e99a0410b6fb5e14` — "Document GoReleaser snapshot workflow"
+
+### What I did
+
+- Added `cmd/goja-dbus/main.go`, a checked-in xgoja host for the `goja-dbus` runtime plan.
+- Kept `cmd/goja-dbus/xgoja.yaml` as the source xgoja spec for doctor/build workflows.
+- Updated `.goreleaser.yaml` so builds target `./cmd/goja-dbus` and produce `goja-dbus`.
+- Replaced deprecated GoReleaser `snapshot.name_template` with `snapshot.version_template`.
+- Replaced deprecated `brews` configuration with `homebrew_casks` and a `goja-dbus` binary entry.
+- Ran `go mod tidy`, which pulled in the transitive CLI/runtime dependencies required by the checked-in host.
+- Committed generated logcopter package stubs produced by `go generate ./...` so the GoReleaser before hook is reproducible.
+- Added Makefile helpers:
+  - `make goreleaser-check`;
+  - `make goreleaser-snapshot`.
+- Documented the snapshot workflow in README.
+
+### Why
+
+- GoReleaser builds Go main packages; it does not directly consume `xgoja.yaml` as a binary artifact pipeline.
+- A checked-in host keeps release packaging simple: `go build ./cmd/goja-dbus` is now the release entrypoint.
+- The xgoja spec still validates the intended runtime shape and can regenerate a temporary host for comparison during development.
+
+### What worked
+
+- `GOWORK=off go test ./... -count=1` passed.
+- `GOWORK=off go build -o /tmp/goja-dbus-checkedin ./cmd/goja-dbus` produced a working binary.
+- `/tmp/goja-dbus-checkedin help api-reference` rendered bundled provider docs.
+- `GOWORK=off goreleaser check` passed after removing deprecated config fields.
+- `GOWORK=off goreleaser release --skip=sign --snapshot --clean --single-target` succeeded.
+- The snapshot produced:
+  - `dist/linux_amd64/goja-dbus-linux_linux_amd64_v1/goja-dbus`;
+  - `dist/linux_amd64/goja-dbus_0.0.1-next_linux_amd64.tar.gz`;
+  - `dist/linux_amd64/goja-dbus_0.0.1-next_linux_amd64.deb`;
+  - `dist/linux_amd64/goja-dbus_0.0.1-next_linux_amd64.rpm`.
+- The GoReleaser-built binary ran a bundled example verb successfully:
+  - `./dist/linux_amd64/goja-dbus-linux_linux_amd64_v1/goja-dbus verbs examples denied-system-bus`.
+
+### What didn't work
+
+- `GOWORK=off goreleaser check` initially failed because the config was valid but used deprecated fields:
+  - `snapshot.name_template should not be used anymore`;
+  - `brews is being phased out in favor of homebrew_casks`.
+- Fix: changed `snapshot.name_template` to `snapshot.version_template` and converted `brews` to `homebrew_casks` with `binaries: [goja-dbus]`.
+- The first `GOWORK=off go test ./... -count=1` after adding `cmd/goja-dbus/main.go` failed with:
+  - `go: updates to go.mod needed; to update it: go mod tidy`.
+- Fix: ran `GOWORK=off go mod tidy` and committed the resulting dependency changes.
+
+### What I learned
+
+- xgoja's temporary build host is easy to use locally, but release automation is simpler when a stable `main.go` exists in the repository.
+- GoReleaser v2.13 treats deprecations as a failed `check`, so release config needs to stay ahead of deprecated keys even when the old fields still parse.
+- The checked-in host and xgoja spec now duplicate the runtime plan; future changes should update both or introduce a generation/check workflow.
+
+### What was tricky to build
+
+- The main design tradeoff was duplication versus release simplicity. A checked-in `main.go` duplicates the xgoja runtime JSON, but it lets GoReleaser build with ordinary Go semantics and avoids requiring a generated temporary module during release.
+- The GoReleaser before hook runs `go generate ./...`, which produced logcopter stubs in several packages. Committing them keeps repeated release runs stable.
+
+### What warrants a second pair of eyes
+
+- Review the duplicated runtime plan in `cmd/goja-dbus/main.go` against `cmd/goja-dbus/xgoja.yaml`; drift is the main ongoing risk.
+- Review the Homebrew cask conversion before publishing to the tap because cask/formula conventions may differ from prior GoReleaser `brews` behavior.
+- Review whether the release pipeline should eventually generate `cmd/goja-dbus/main.go` from `xgoja.yaml` instead of keeping it manually synchronized.
+
+### What should be done in the future
+
+- Add a check that compares the checked-in `cmd/goja-dbus/main.go` embedded runtime plan with the xgoja spec output.
+- Decide whether to publish as a Homebrew cask long-term or restore a formula-style workflow if GoReleaser guidance changes.
+
+### Code review instructions
+
+- Review `cmd/goja-dbus/main.go` first; it is the GoReleaser entrypoint.
+- Review `.goreleaser.yaml` for build targets, snapshot config, Homebrew cask config, and package metadata.
+- Review `Makefile` for `goreleaser-check` and `goreleaser-snapshot` helpers.
+- Validate with:
+  - `GOWORK=off go test ./... -count=1`
+  - `GOWORK=off go build -o /tmp/goja-dbus-checkedin ./cmd/goja-dbus`
+  - `GOWORK=off goreleaser check`
+  - `GOWORK=off goreleaser release --skip=sign --snapshot --clean --single-target`
+
+### Technical details
+
+Commands:
+
+```bash
+cd goja-dbus
+GOWORK=off go mod tidy
+GOWORK=off go test ./... -count=1
+GOWORK=off go build -o /tmp/goja-dbus-checkedin ./cmd/goja-dbus
+/tmp/goja-dbus-checkedin help api-reference
+GOWORK=off goreleaser check
+GOWORK=off goreleaser release --skip=sign --snapshot --clean --single-target
+./dist/linux_amd64/goja-dbus-linux_linux_amd64_v1/goja-dbus verbs examples denied-system-bus
+git commit -m "Wire GoReleaser to goja-dbus CLI"
+git commit -m "Document GoReleaser snapshot workflow"
 ```
