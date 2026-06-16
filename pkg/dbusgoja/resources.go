@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/go-go-golems/goja-dbus/pkg/dbuscore"
 )
@@ -15,14 +16,16 @@ type resourceRegistry struct {
 }
 
 func newResourceRegistry(lifetime context.Context) *resourceRegistry {
-	if lifetime == nil {
-		lifetime = context.Background()
-	}
 	registry := &resourceRegistry{buses: map[*dbuscore.Bus]struct{}{}}
-	go func() {
+	if lifetime == nil {
+		return registry
+	}
+	go func(lifetime context.Context) {
 		<-lifetime.Done()
-		_ = registry.closeAll(context.Background())
-	}()
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(lifetime), 5*time.Second)
+		defer cancel()
+		_ = registry.closeAll(cleanupCtx)
+	}(lifetime)
 	return registry
 }
 
