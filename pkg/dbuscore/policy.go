@@ -11,15 +11,17 @@ import (
 type Policy struct {
 	AllowSessionBus bool
 	AllowSystemBus  bool
+	AllowAddressBus bool
 	AllowCall       []string
+	AllowCallSet    bool
 }
 
 func DefaultPolicy() Policy {
-	return Policy{AllowSessionBus: true, AllowCall: []string{"*"}}
+	return Policy{AllowSessionBus: true, AllowCall: []string{"*"}, AllowCallSet: true}
 }
 
 func (p Policy) IsZero() bool {
-	return !p.AllowSessionBus && !p.AllowSystemBus && len(p.AllowCall) == 0
+	return !p.AllowSessionBus && !p.AllowSystemBus && !p.AllowAddressBus && len(p.AllowCall) == 0 && !p.AllowCallSet
 }
 
 func (p Policy) CheckConnect(kind BusKind) error {
@@ -33,7 +35,7 @@ func (p Policy) CheckConnect(kind BusKind) error {
 			return fmt.Errorf("dbus: system bus is not allowed by policy")
 		}
 	case BusAddress:
-		if !p.AllowSessionBus && !p.AllowSystemBus {
+		if !p.AllowAddressBus {
 			return fmt.Errorf("dbus: address bus is not allowed by policy")
 		}
 	default:
@@ -44,6 +46,9 @@ func (p Policy) CheckConnect(kind BusKind) error {
 
 func (p Policy) CheckCall(req MethodCallRequest) error {
 	if len(p.AllowCall) == 0 {
+		if p.AllowCallSet {
+			return fmt.Errorf("dbus: call to %s %s.%s is not allowed by policy", req.Destination, req.Interface, req.Member)
+		}
 		return nil
 	}
 	candidates := []string{

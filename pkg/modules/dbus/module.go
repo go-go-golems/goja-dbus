@@ -50,6 +50,7 @@ func (m *module) TypeScriptModule() *spec.Module {
 			"  allowSessionBus?: boolean;",
 			"  allowSystemBus?: boolean;",
 			"  denySystemBus?: boolean;",
+			"  allowAddressBus?: boolean;",
 			"  allowCall?: string[];",
 			"}",
 			"interface BusBuilder {",

@@ -16,7 +16,7 @@ Implemented:
 
 - `require("dbus")` native module registration.
 - Typed helpers: `u32`, `i32`, `path`, `signature`, `variant`, `array`, `dict`, and `struct`.
-- Promise-based session/system/address bus builders.
+- Promise-based session/system/address bus builders, with explicit-address connections denied unless policy enables them.
 - Default-denied system bus policy.
 - Remote method-call builders for scalar signatures.
 - EventEmitter-based signal subscription builders.

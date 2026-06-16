@@ -37,7 +37,7 @@ Creates a builder for the system bus. The default policy denies system bus acces
 
 ### `dbus.connect(address: string): BusBuilder`
 
-Creates a builder for an explicit D-Bus address. Empty addresses are rejected.
+Creates a builder for an explicit D-Bus address. Empty addresses are rejected. Explicit-address connections are denied by the default policy; opt in with `policy({ allowAddressBus: true })` only when the host intentionally allows direct addresses.
 
 ## `BusBuilder`
 
@@ -54,11 +54,12 @@ interface DBusPolicy {
   allowSessionBus?: boolean;
   allowSystemBus?: boolean;
   denySystemBus?: boolean;
+  allowAddressBus?: boolean;
   allowCall?: string[];
 }
 ```
 
-`allowCall` supports exact matches and suffix `*` prefix matches. This is intentionally a small matcher, not a full glob language.
+`allowAddressBus` is separate from session/system policy so callers cannot bypass the default system-bus denial by passing a raw system bus address to `connect(address)`. `allowCall` supports exact matches and suffix `*` prefix matches. An explicitly empty `allowCall: []` list denies all method calls; omit the field to keep the builder's existing call policy.
 
 ### `connect(): Promise<DBusBus>`
 

@@ -101,6 +101,32 @@ dbus.system().connect()
 	}
 }
 
+func TestDBusAddressConnectDeniedByDefault(t *testing.T) {
+	rt := newDBusRuntime(t)
+
+	_, err := rt.Owner.Call(context.Background(), "dbus.address.denied.setup", func(_ context.Context, vm *goja.Runtime) (any, error) {
+		_, runErr := vm.RunString(`
+globalThis.dbusState = { done: false, error: "", code: "" };
+const dbus = require("dbus");
+dbus.connect("unix:path=/run/dbus/system_bus_socket").connect()
+  .then(() => { globalThis.dbusState.done = true; })
+  .catch((err) => { globalThis.dbusState.error = String(err); globalThis.dbusState.code = err.code || ""; });
+`)
+		return nil, runErr
+	})
+	if err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	state := waitDBusState(t, rt)
+	if state.Error == "" {
+		t.Fatalf("expected address bus denial, state=%+v", state)
+	}
+	if state.Code != "ERR_DBUS" {
+		t.Fatalf("error code = %q, want ERR_DBUS", state.Code)
+	}
+}
+
 func TestDBusGetIdIntegration(t *testing.T) {
 	if os.Getenv("GOJA_DBUS_INTEGRATION") != "1" {
 		t.Skip("set GOJA_DBUS_INTEGRATION=1 to run against a real session bus")
