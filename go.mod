@@ -143,5 +143,3 @@ require (
 )
 
 tool github.com/go-go-golems/logcopter/cmd/logcopter-gen
-
-replace github.com/go-go-golems/go-go-goja => ../go-go-goja
